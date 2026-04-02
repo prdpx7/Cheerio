@@ -59,7 +59,7 @@ async fn main() {
         match state {
             GameState::Title => {
                 let high_score = score.as_ref().map(|s| s.high_score).unwrap_or(0);
-                if screens::draw_title_screen(high_score) {
+                if screens::draw_title_screen(high_score, camera.scroll_x) {
                     player = Some(Player::new(camera.scroll_x));
                     world = Some(World::new());
                     score = Some(ScoreManager::new());
@@ -263,7 +263,7 @@ async fn main() {
                 }
             }
             GameState::GameOver => {
-                if screens::draw_game_over_screen(score.as_ref().unwrap()) {
+                if screens::draw_game_over_screen(score.as_ref().unwrap(), camera.scroll_x) {
                     state = GameState::Title;
                     camera = GameCamera::new();
                     player = None;
