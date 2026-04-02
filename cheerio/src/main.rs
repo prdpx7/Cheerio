@@ -49,7 +49,7 @@ async fn main() {
     let mut score: Option<ScoreManager> = None;
     let mut zone_manager: Option<ZoneManager> = None;
     let mut audio = AudioManager::new();
-    let mut audio_loaded = false;
+    audio.load().await;
 
     loop {
         let dt = get_frame_time();
@@ -61,10 +61,6 @@ async fn main() {
             GameState::Title => {
                 let high_score = score.as_ref().map(|s| s.high_score).unwrap_or(0);
                 if screens::draw_title_screen(high_score, camera.scroll_x) {
-                    if !audio_loaded {
-                        audio.load().await;
-                        audio_loaded = true;
-                    }
                     player = Some(Player::new(camera.scroll_x));
                     world = Some(World::new());
                     score = Some(ScoreManager::new());
