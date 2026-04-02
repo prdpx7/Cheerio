@@ -5,6 +5,7 @@ mod collision;
 mod world;
 mod enemy;
 mod collectible;
+mod score;
 
 use macroquad::prelude::*;
 use constants::*;
@@ -13,6 +14,7 @@ use player::{Player, PowerState};
 use world::World;
 use enemy::Enemy;
 use collision::is_stomp;
+use score::ScoreManager;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
@@ -38,6 +40,7 @@ async fn main() {
     let mut camera = GameCamera::new();
     let mut player: Option<Player> = None;
     let mut world: Option<World> = None;
+    let mut score: Option<ScoreManager> = None;
 
     loop {
         let dt = get_frame_time();
@@ -53,12 +56,13 @@ async fn main() {
                 if is_key_pressed(KeyCode::Space) {
                     player = Some(Player::new(camera.scroll_x));
                     world = Some(World::new());
+                    score = Some(ScoreManager::new());
                     state = GameState::Playing;
                 }
             }
             GameState::Playing => {
                 camera.advance(SCROLL_SPEED_BASE, dt);
-                draw_text("Playing... (ESC to pause)", 10.0 + camera.scroll_x, 30.0, 20.0, WHITE);
+                score.as_mut().unwrap().add_distance(SCROLL_SPEED_BASE * dt);
 
                 world.as_mut().unwrap().update(camera.scroll_x);
                 world.as_ref().unwrap().draw();
@@ -72,6 +76,7 @@ async fn main() {
 
                     let ground_rects_for_enemies = world.as_ref().unwrap().get_ground_rects();
                     let mut new_shells: Vec<Enemy> = Vec::new();
+                    let mut stomps_this_frame: Vec<usize> = Vec::new();
                     for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
                         enemy.update(dt, &ground_rects_for_enemies);
                         if enemy.alive {
@@ -85,10 +90,12 @@ async fn main() {
                                     p.vy = STOMP_BOUNCE_VELOCITY;
                                     p.on_ground = false;
                                     p.stomp_chain += 1;
+                                    stomps_this_frame.push(p.stomp_chain as usize - 1);
                                 } else {
                                     p.take_damage();
                                     if p.is_dead {
                                         state = GameState::GameOver;
+                                        score.as_mut().unwrap().finalize();
                                     }
                                 }
                             }
@@ -99,18 +106,26 @@ async fn main() {
                             chunk.enemies.push(shell);
                         }
                     }
+                    for chain_idx in stomps_this_frame {
+                        score.as_mut().unwrap().add_stomp(chain_idx);
+                    }
 
                     let ground_rects_for_collect = world.as_ref().unwrap().get_ground_rects();
+                    let mut coins_collected = 0u32;
+                    let mut powerups_collected = 0u32;
                     for c in world.as_mut().unwrap().get_all_collectibles_mut() {
                         c.update(dt, &ground_rects_for_collect);
                         if !c.collected && c.active && p.rect().overlaps(&c.rect()) {
                             c.collected = true;
                             match c.kind {
-                                collectible::CollectibleKind::Coin => {}
+                                collectible::CollectibleKind::Coin => {
+                                    coins_collected += 1;
+                                }
                                 collectible::CollectibleKind::Mushroom => {
                                     if p.power_state == PowerState::Small {
                                         p.power_state = PowerState::Super;
                                     }
+                                    powerups_collected += 1;
                                 }
                                 collectible::CollectibleKind::FireFlower => {
                                     if p.power_state == PowerState::Super {
@@ -118,12 +133,20 @@ async fn main() {
                                     } else if p.power_state == PowerState::Small {
                                         p.power_state = PowerState::Super;
                                     }
+                                    powerups_collected += 1;
                                 }
                                 collectible::CollectibleKind::Star => {
                                     p.star_timer = STAR_DURATION;
+                                    powerups_collected += 1;
                                 }
                             }
                         }
+                    }
+                    for _ in 0..coins_collected {
+                        score.as_mut().unwrap().add_coin();
+                    }
+                    for _ in 0..powerups_collected {
+                        score.as_mut().unwrap().add_powerup();
                     }
 
                     let mut spawned_collectibles = Vec::new();
@@ -148,9 +171,11 @@ async fn main() {
                     }
 
                     p.draw();
+                    score.as_ref().unwrap().draw_hud(camera.scroll_x, "GRASSLAND");
 
                     if p.y > INTERNAL_HEIGHT + 50.0 {
                         state = GameState::GameOver;
+                        score.as_mut().unwrap().finalize();
                     }
                 }
 
@@ -180,6 +205,7 @@ async fn main() {
                     camera = GameCamera::new();
                     player = None;
                     world = None;
+                    score = None;
                 }
             }
         }
