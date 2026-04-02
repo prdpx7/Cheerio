@@ -1,0 +1,82 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build WASM
+        run: cargo build --manifest-path cheerio/Cargo.toml --target wasm32-unknown-unknown --release
+
+      - name: Prepare dist
+        run: |
+          mkdir -p dist
+          cp cheerio/target/wasm32-unknown-unknown/release/cheerio.wasm dist/
+          MINIQUAD_JS=$(find ~/.cargo/registry/src -path "*/macroquad-0.4*/js/mq_js_bundle.js" | head -1)
+          cp "$MINIQUAD_JS" dist/mq_js_bundle.js
+          cp -r cheerio/assets dist/
+          cat > dist/index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <title>Cheerio</title>
+              <style>
+                  * { margin: 0; padding: 0; }
+                  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; }
+                  canvas { display: block; width: 100%; height: 100%; }
+                  @media (orientation: portrait) {
+                      #rotate-msg { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; color: #fff; z-index: 999; align-items: center; justify-content: center; flex-direction: column; font-family: monospace; font-size: 18px; }
+                      #rotate-msg span { font-size: 48px; margin-bottom: 16px; }
+                      #glcanvas { display: none; }
+                  }
+                  @media (orientation: landscape) { #rotate-msg { display: none; } #glcanvas { display: block; } }
+              </style>
+          </head>
+          <body>
+              <div id="rotate-msg"><span>&#x21BB;</span>Rotate your phone to landscape</div>
+              <canvas id="glcanvas" tabindex="1"></canvas>
+              <script src="mq_js_bundle.js"></script>
+              <script>load("cheerio.wasm");</script>
+          </body>
+          </html>
+          HTMLEOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
