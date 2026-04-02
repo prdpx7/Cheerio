@@ -139,19 +139,68 @@ impl Chunk {
     pub fn draw(&self) {
         let ground_color = self.zone.ground_color();
         let ground_top_color = self.zone.ground_top_color();
+        let brick_line = Color::new(0.0, 0.0, 0.0, 0.15);
 
         for seg in &self.ground_segments {
             draw_rectangle(seg.x, seg.y + 4.0, seg.w, seg.h - 4.0, ground_color);
             draw_rectangle(seg.x, seg.y, seg.w, 4.0, ground_top_color);
+
+            let start_tile = (seg.x / TILE_SIZE).floor() as i32;
+            let end_tile = ((seg.x + seg.w) / TILE_SIZE).ceil() as i32;
+            for t in start_tile..end_tile {
+                let tx = t as f32 * TILE_SIZE;
+                if tx >= seg.x && tx <= seg.x + seg.w {
+                    draw_line(tx, seg.y + 4.0, tx, seg.y + seg.h, 1.0, brick_line);
+                }
+            }
+            draw_line(seg.x, seg.y + 4.0 + TILE_SIZE * 0.5, seg.x + seg.w, seg.y + 4.0 + TILE_SIZE * 0.5, 1.0, brick_line);
+
+            let grass = Color::new(0.2, 0.7, 0.15, 1.0);
+            let tuft_count = (seg.w / 20.0) as i32;
+            for i in 0..tuft_count {
+                let gx = seg.x + i as f32 * 20.0 + 10.0;
+                draw_triangle(
+                    vec2(gx - 4.0, seg.y),
+                    vec2(gx + 4.0, seg.y),
+                    vec2(gx, seg.y - 5.0),
+                    grass,
+                );
+                draw_triangle(
+                    vec2(gx + 2.0, seg.y),
+                    vec2(gx + 9.0, seg.y),
+                    vec2(gx + 5.0, seg.y - 3.0),
+                    Color::new(0.25, 0.65, 0.2, 1.0),
+                );
+            }
         }
 
         for plat in &self.platforms {
-            let c = if plat.breakable {
-                Color::new(0.7, 0.5, 0.3, 1.0)
+            let r = plat.rect;
+            if plat.breakable {
+                let brick = Color::new(0.7, 0.45, 0.25, 1.0);
+                let mortar = Color::new(0.55, 0.35, 0.18, 1.0);
+                draw_rectangle(r.x, r.y, r.w, r.h, brick);
+                let tiles = (r.w / TILE_SIZE).ceil() as i32;
+                for t in 0..tiles {
+                    let tx = r.x + t as f32 * TILE_SIZE;
+                    draw_line(tx, r.y, tx, r.y + r.h, 1.0, mortar);
+                }
+                draw_line(r.x, r.y + r.h * 0.5, r.x + r.w, r.y + r.h * 0.5, 1.0, mortar);
+                draw_rectangle(r.x, r.y, r.w, 1.5, Color::new(0.8, 0.55, 0.35, 1.0));
             } else {
-                Color::new(0.8, 0.7, 0.2, 1.0)
-            };
-            draw_rectangle(plat.rect.x, plat.rect.y, plat.rect.w, plat.rect.h, c);
+                let stone = Color::new(0.6, 0.6, 0.55, 1.0);
+                let edge = Color::new(0.45, 0.45, 0.4, 1.0);
+                draw_rectangle(r.x, r.y, r.w, r.h, stone);
+                draw_rectangle(r.x, r.y, r.w, 2.0, Color::new(0.7, 0.7, 0.65, 1.0));
+                draw_rectangle(r.x, r.y + r.h - 2.0, r.w, 2.0, edge);
+                draw_rectangle(r.x, r.y, 2.0, r.h, edge);
+                draw_rectangle(r.x + r.w - 2.0, r.y, 2.0, r.h, edge);
+                let tiles = (r.w / TILE_SIZE).ceil() as i32;
+                for t in 1..tiles {
+                    let tx = r.x + t as f32 * TILE_SIZE;
+                    draw_line(tx, r.y + 2.0, tx, r.y + r.h - 2.0, 1.0, edge);
+                }
+            }
         }
 
         for enemy in &self.enemies {

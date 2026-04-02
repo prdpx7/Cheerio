@@ -115,16 +115,91 @@ impl Enemy {
             return;
         }
 
-        let color = match self.kind {
-            EnemyKind::Goomba => Color::new(0.6, 0.3, 0.1, 1.0),
-            EnemyKind::Koopa => GREEN,
-            EnemyKind::Shell => DARKGREEN,
-            EnemyKind::BuzzyBeetle => DARKBLUE,
-            EnemyKind::BulletBill => DARKGRAY,
-            EnemyKind::Paratroopa => Color::new(0.8, 0.2, 0.2, 1.0),
-        };
+        let x = self.x;
+        let y = self.y;
+        let w = self.width;
+        let h = self.height;
 
-        draw_rectangle(self.x, self.y, self.width, self.height, color);
+        match self.kind {
+            EnemyKind::Goomba => {
+                let cap = Color::new(0.55, 0.27, 0.07, 1.0);
+                let face = Color::new(0.9, 0.8, 0.6, 1.0);
+                let foot = Color::new(0.3, 0.15, 0.05, 1.0);
+                draw_circle(x + w * 0.5, y + 5.0, w * 0.5, cap);
+                draw_rectangle(x + 2.0, y + 5.0, w - 4.0, h * 0.4, face);
+                draw_rectangle(x + 3.0, y + 7.0, 3.0, 3.0, WHITE);
+                draw_rectangle(x + w - 6.0, y + 7.0, 3.0, 3.0, WHITE);
+                draw_rectangle(x + 4.0, y + 8.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + w - 5.0, y + 8.0, 2.0, 2.0, BLACK);
+                draw_line(x + 3.0, y + 6.0, x + 6.0, y + 7.0, 1.0, BLACK);
+                draw_line(x + w - 3.0, y + 6.0, x + w - 6.0, y + 7.0, 1.0, BLACK);
+                draw_rectangle(x, y + h - 4.0, 5.0, 4.0, foot);
+                draw_rectangle(x + w - 5.0, y + h - 4.0, 5.0, 4.0, foot);
+            }
+            EnemyKind::Koopa => {
+                let shell_color = Color::new(0.1, 0.7, 0.2, 1.0);
+                let head_color = Color::new(0.9, 0.8, 0.5, 1.0);
+                draw_circle(x + w * 0.5, y + h * 0.55, w * 0.45, shell_color);
+                draw_rectangle(x + 2.0, y + h * 0.4, w - 4.0, h * 0.45, shell_color);
+                draw_circle(x + w * 0.7, y + 4.0, 5.0, head_color);
+                draw_rectangle(x + w * 0.6 + 3.0, y + 2.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + 1.0, y + h - 4.0, 4.0, 4.0, head_color);
+                draw_rectangle(x + w - 5.0, y + h - 4.0, 4.0, 4.0, head_color);
+                draw_line(x + 3.0, y + h * 0.5, x + w - 3.0, y + h * 0.5, 1.0, Color::new(0.05, 0.5, 0.1, 1.0));
+            }
+            EnemyKind::Shell => {
+                let shell_color = Color::new(0.0, 0.5, 0.1, 1.0);
+                draw_circle(x + w * 0.5, y + h * 0.5, w * 0.45, shell_color);
+                draw_rectangle(x + 2.0, y + 3.0, w - 4.0, h - 6.0, shell_color);
+                draw_line(x + 3.0, y + h * 0.5, x + w - 3.0, y + h * 0.5, 1.0, Color::new(0.0, 0.35, 0.05, 1.0));
+                draw_circle(x + w * 0.5, y + h * 0.5, w * 0.2, Color::new(0.9, 0.85, 0.6, 1.0));
+            }
+            EnemyKind::BuzzyBeetle => {
+                let shell_color = Color::new(0.1, 0.1, 0.4, 1.0);
+                let highlight = Color::new(0.2, 0.2, 0.6, 1.0);
+                draw_circle(x + w * 0.5, y + h * 0.5, w * 0.48, shell_color);
+                draw_rectangle(x + 1.0, y + 3.0, w - 2.0, h - 6.0, shell_color);
+                draw_rectangle(x + 3.0, y + 2.0, w - 6.0, 3.0, highlight);
+                draw_rectangle(x + 3.0, y + h * 0.45, 2.0, 2.0, WHITE);
+                draw_rectangle(x + w - 5.0, y + h * 0.45, 2.0, 2.0, WHITE);
+                draw_rectangle(x, y + h - 3.0, 4.0, 3.0, Color::new(0.05, 0.05, 0.25, 1.0));
+                draw_rectangle(x + w - 4.0, y + h - 3.0, 4.0, 3.0, Color::new(0.05, 0.05, 0.25, 1.0));
+            }
+            EnemyKind::BulletBill => {
+                let body = Color::new(0.15, 0.15, 0.15, 1.0);
+                draw_rectangle(x, y + 2.0, w, h - 4.0, body);
+                draw_circle(x + w, y + h * 0.5, h * 0.4, body);
+                draw_rectangle(x, y, 6.0, h, Color::new(0.3, 0.15, 0.05, 1.0));
+                draw_rectangle(x + w * 0.5, y + 3.0, 4.0, 4.0, WHITE);
+                draw_rectangle(x + w * 0.5 + 1.0, y + 4.0, 2.0, 2.0, BLACK);
+                draw_triangle(
+                    vec2(x, y),
+                    vec2(x, y + 4.0),
+                    vec2(x - 4.0, y + 2.0),
+                    body,
+                );
+                draw_triangle(
+                    vec2(x, y + h - 4.0),
+                    vec2(x, y + h),
+                    vec2(x - 4.0, y + h - 2.0),
+                    body,
+                );
+            }
+            EnemyKind::Paratroopa => {
+                let shell_color = Color::new(0.8, 0.15, 0.15, 1.0);
+                let head_color = Color::new(0.9, 0.8, 0.5, 1.0);
+                let wing = Color::new(1.0, 1.0, 1.0, 0.8);
+                draw_circle(x + w * 0.5, y + h * 0.55, w * 0.45, shell_color);
+                draw_rectangle(x + 2.0, y + h * 0.4, w - 4.0, h * 0.45, shell_color);
+                draw_circle(x + w * 0.7, y + 4.0, 5.0, head_color);
+                draw_rectangle(x + w * 0.6 + 3.0, y + 2.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + 1.0, y + h - 4.0, 4.0, 4.0, head_color);
+                draw_rectangle(x + w - 5.0, y + h - 4.0, 4.0, 4.0, head_color);
+                let wing_y = y + h * 0.3;
+                draw_triangle(vec2(x - 2.0, wing_y), vec2(x + 3.0, wing_y + 4.0), vec2(x - 6.0, wing_y - 6.0), wing);
+                draw_triangle(vec2(x + w + 2.0, wing_y), vec2(x + w - 3.0, wing_y + 4.0), vec2(x + w + 6.0, wing_y - 6.0), wing);
+            }
+        }
     }
 }
 
@@ -168,12 +243,17 @@ impl FireBar {
 
     pub fn draw(&self) {
         let segments = 6;
+        let t = get_time() as f32;
         for i in 1..=segments {
             let frac = i as f32 / segments as f32;
             let bx = self.x + self.angle.cos() * self.length * frac;
             let by = self.y + self.angle.sin() * self.length * frac;
-            draw_circle(bx, by, 4.0, ORANGE);
+            let flicker = (t * 12.0 + i as f32 * 2.0).sin() * 0.15;
+            draw_circle(bx, by, 6.0, Color::new(1.0, 0.3, 0.0, 0.25 + flicker));
+            draw_circle(bx, by, 4.0, Color::new(1.0, 0.5 + flicker, 0.0, 0.8));
+            draw_circle(bx, by, 2.0, Color::new(1.0, 0.9, 0.3, 1.0));
         }
+        draw_circle(self.x, self.y, 5.0, Color::new(0.3, 0.3, 0.3, 1.0));
     }
 }
 
@@ -235,8 +315,31 @@ impl Thwomp {
     }
 
     pub fn draw(&self) {
-        draw_rectangle(self.x, self.y, TILE_SIZE * 2.0, TILE_SIZE * 2.0, DARKGRAY);
-        draw_rectangle(self.x + 4.0, self.y + TILE_SIZE * 0.5, 6.0, 6.0, WHITE);
-        draw_rectangle(self.x + TILE_SIZE * 2.0 - 10.0, self.y + TILE_SIZE * 0.5, 6.0, 6.0, WHITE);
+        let x = self.x;
+        let y = self.y;
+        let s = TILE_SIZE * 2.0;
+        let stone = Color::new(0.55, 0.55, 0.6, 1.0);
+        let dark_stone = Color::new(0.4, 0.4, 0.45, 1.0);
+        draw_rectangle(x, y, s, s, stone);
+        draw_rectangle(x, y, s, 3.0, dark_stone);
+        draw_rectangle(x, y + s - 3.0, s, 3.0, dark_stone);
+        draw_rectangle(x, y, 3.0, s, dark_stone);
+        draw_rectangle(x + s - 3.0, y, 3.0, s, dark_stone);
+        draw_rectangle(x + 5.0, y + 8.0, 7.0, 7.0, WHITE);
+        draw_rectangle(x + s - 12.0, y + 8.0, 7.0, 7.0, WHITE);
+        draw_rectangle(x + 7.0, y + 10.0, 3.0, 3.0, BLACK);
+        draw_rectangle(x + s - 10.0, y + 10.0, 3.0, 3.0, BLACK);
+        let teeth_y = y + s * 0.65;
+        for i in 0..4 {
+            let tx = x + 4.0 + i as f32 * 7.0;
+            draw_triangle(
+                vec2(tx, teeth_y),
+                vec2(tx + 6.0, teeth_y),
+                vec2(tx + 3.0, teeth_y + 5.0),
+                WHITE,
+            );
+        }
+        draw_line(x + 5.0, y + 8.0, x + 9.0, y + 10.0, 1.5, BLACK);
+        draw_line(x + s - 5.0, y + 8.0, x + s - 9.0, y + 10.0, 1.5, BLACK);
     }
 }
