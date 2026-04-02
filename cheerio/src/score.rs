@@ -15,7 +15,7 @@ impl ScoreManager {
         Self {
             score: 0,
             coins: 0,
-            high_score: load_high_score(),
+            high_score: 0,
             distance: 0.0,
             enemies_stomped: 0,
             cycle: 1,
@@ -45,7 +45,6 @@ impl ScoreManager {
     pub fn finalize(&mut self) {
         if self.score > self.high_score {
             self.high_score = self.score;
-            save_high_score(self.high_score);
         }
     }
 
@@ -68,31 +67,4 @@ impl ScoreManager {
             WHITE,
         );
     }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn load_high_score() -> u32 {
-    web_sys::window()
-        .and_then(|w| w.local_storage().ok().flatten())
-        .and_then(|s| s.get_item("cheerio_highscore").ok().flatten())
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0)
-}
-
-#[cfg(target_arch = "wasm32")]
-fn save_high_score(score: u32) {
-    if let Some(storage) = web_sys::window()
-        .and_then(|w| w.local_storage().ok().flatten())
-    {
-        let _ = storage.set_item("cheerio_highscore", &score.to_string());
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn load_high_score() -> u32 {
-    0
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn save_high_score(_score: u32) {
 }
