@@ -3,12 +3,15 @@ mod camera;
 mod player;
 mod collision;
 mod world;
+mod enemy;
 
 use macroquad::prelude::*;
 use constants::*;
 use camera::GameCamera;
 use player::Player;
 use world::World;
+use enemy::Enemy;
+use collision::is_stomp;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
@@ -65,6 +68,36 @@ async fn main() {
                     let ground_rects = world.as_ref().unwrap().get_ground_rects();
                     let platform_rects = world.as_ref().unwrap().get_platform_rects();
                     p.resolve_terrain(&ground_rects, &platform_rects);
+
+                    let ground_rects_for_enemies = world.as_ref().unwrap().get_ground_rects();
+                    let mut new_shells: Vec<Enemy> = Vec::new();
+                    for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
+                        enemy.update(dt, &ground_rects_for_enemies);
+                        if enemy.alive {
+                            let player_rect = p.rect();
+                            let enemy_rect = enemy.rect();
+                            if player_rect.overlaps(&enemy_rect) {
+                                if is_stomp(&player_rect, &enemy_rect, p.vy) {
+                                    if let Some(shell) = enemy.stomp() {
+                                        new_shells.push(shell);
+                                    }
+                                    p.vy = STOMP_BOUNCE_VELOCITY;
+                                    p.on_ground = false;
+                                    p.stomp_chain += 1;
+                                } else {
+                                    p.take_damage();
+                                    if p.is_dead {
+                                        state = GameState::GameOver;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for shell in new_shells {
+                        if let Some(chunk) = world.as_mut().unwrap().chunks.last_mut() {
+                            chunk.enemies.push(shell);
+                        }
+                    }
 
                     p.draw();
 

@@ -1,5 +1,6 @@
 use macroquad::prelude::*;
 use crate::constants::*;
+use crate::enemy::{Enemy, EnemyKind};
 
 #[derive(Debug, Clone)]
 pub struct Platform {
@@ -15,6 +16,7 @@ pub struct Chunk {
     pub has_gap: bool,
     pub gap_start: f32,
     pub gap_width: f32,
+    pub enemies: Vec<Enemy>,
 }
 
 impl Chunk {
@@ -58,6 +60,25 @@ impl Chunk {
             });
         }
 
+        let enemy_count = rand::gen_range(0, 3);
+        let mut enemies = Vec::new();
+        for _ in 0..enemy_count {
+            let ex = x + rand::gen_range(TILE_SIZE * 2.0, CHUNK_WIDTH - TILE_SIZE * 2.0);
+            let on_valid_ground = if has_gap {
+                ex < gap_start || ex > gap_start + gap_width
+            } else {
+                true
+            };
+            if on_valid_ground {
+                let kind = if rand::gen_range(0.0, 1.0) < 0.6 {
+                    EnemyKind::Goomba
+                } else {
+                    EnemyKind::Koopa
+                };
+                enemies.push(Enemy::new(kind, ex, GROUND_Y));
+            }
+        }
+
         Self {
             x,
             ground_segments,
@@ -65,6 +86,7 @@ impl Chunk {
             has_gap,
             gap_start,
             gap_width,
+            enemies,
         }
     }
 
@@ -85,6 +107,10 @@ impl Chunk {
             };
             draw_rectangle(plat.rect.x, plat.rect.y, plat.rect.w, plat.rect.h, c);
         }
+
+        for enemy in &self.enemies {
+            enemy.draw();
+        }
     }
 }
 
@@ -103,6 +129,7 @@ impl World {
             has_gap: false,
             gap_start: 0.0,
             gap_width: 0.0,
+            enemies: vec![],
         });
         for i in 1..CHUNK_BUFFER {
             chunks.push(Chunk::generate(i as f32 * CHUNK_WIDTH, 0));
@@ -144,5 +171,9 @@ impl World {
             }
         }
         plats
+    }
+
+    pub fn get_all_enemies_mut(&mut self) -> Vec<&mut Enemy> {
+        self.chunks.iter_mut().flat_map(|c| c.enemies.iter_mut()).collect()
     }
 }
