@@ -127,3 +127,116 @@ impl Enemy {
         draw_rectangle(self.x, self.y, self.width, self.height, color);
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct FireBar {
+    pub x: f32,
+    pub y: f32,
+    pub length: f32,
+    pub speed: f32,
+    pub angle: f32,
+}
+
+impl FireBar {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self {
+            x,
+            y,
+            length: TILE_SIZE * 3.0,
+            speed: 2.0,
+            angle: 0.0,
+        }
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        self.angle += self.speed * dt;
+    }
+
+    pub fn hits_player(&self, player_rect: &Rect) -> bool {
+        let segments = 6;
+        for i in 1..=segments {
+            let frac = i as f32 / segments as f32;
+            let bx = self.x + self.angle.cos() * self.length * frac;
+            let by = self.y + self.angle.sin() * self.length * frac;
+            let ball_rect = Rect::new(bx - 4.0, by - 4.0, 8.0, 8.0);
+            if player_rect.overlaps(&ball_rect) {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn draw(&self) {
+        let segments = 6;
+        for i in 1..=segments {
+            let frac = i as f32 / segments as f32;
+            let bx = self.x + self.angle.cos() * self.length * frac;
+            let by = self.y + self.angle.sin() * self.length * frac;
+            draw_circle(bx, by, 4.0, ORANGE);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ThwompState {
+    Waiting,
+    Slamming,
+    Rising,
+}
+
+#[derive(Debug, Clone)]
+pub struct Thwomp {
+    pub x: f32,
+    pub y: f32,
+    pub home_y: f32,
+    pub state: ThwompState,
+    pub vy: f32,
+}
+
+impl Thwomp {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self {
+            x,
+            y,
+            home_y: y,
+            state: ThwompState::Waiting,
+            vy: 0.0,
+        }
+    }
+
+    pub fn update(&mut self, dt: f32, player_x: f32) {
+        match self.state {
+            ThwompState::Waiting => {
+                if (player_x - self.x).abs() < TILE_SIZE * 4.0 {
+                    self.state = ThwompState::Slamming;
+                }
+            }
+            ThwompState::Slamming => {
+                self.vy += GRAVITY * 2.0 * dt;
+                self.y += self.vy * dt;
+                if self.y >= GROUND_Y - TILE_SIZE * 2.0 {
+                    self.y = GROUND_Y - TILE_SIZE * 2.0;
+                    self.vy = 0.0;
+                    self.state = ThwompState::Rising;
+                }
+            }
+            ThwompState::Rising => {
+                self.y -= 30.0 * dt;
+                if self.y <= self.home_y {
+                    self.y = self.home_y;
+                    self.state = ThwompState::Waiting;
+                }
+            }
+        }
+    }
+
+    pub fn rect(&self) -> Rect {
+        Rect::new(self.x, self.y, TILE_SIZE * 2.0, TILE_SIZE * 2.0)
+    }
+
+    pub fn draw(&self) {
+        draw_rectangle(self.x, self.y, TILE_SIZE * 2.0, TILE_SIZE * 2.0, DARKGRAY);
+        draw_rectangle(self.x + 4.0, self.y + TILE_SIZE * 0.5, 6.0, 6.0, WHITE);
+        draw_rectangle(self.x + TILE_SIZE * 2.0 - 10.0, self.y + TILE_SIZE * 0.5, 6.0, 6.0, WHITE);
+    }
+}
