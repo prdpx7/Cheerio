@@ -22,6 +22,8 @@ pub struct Player {
     pub fireballs: Vec<Fireball>,
     pub jumped: bool,
     pub fired: bool,
+    jump_buffer: f32,
+    coyote_timer: f32,
 }
 
 impl Player {
@@ -40,6 +42,8 @@ impl Player {
             fireballs: Vec::new(),
             jumped: false,
             fired: false,
+            jump_buffer: 0.0,
+            coyote_timer: 0.0,
         }
     }
 
@@ -56,12 +60,23 @@ impl Player {
             self.star_timer -= dt;
         }
 
+        if self.on_ground {
+            self.coyote_timer = 0.08;
+        } else {
+            self.coyote_timer -= dt;
+        }
+
         if is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::Up) {
-            if self.on_ground {
-                self.vy = JUMP_VELOCITY;
-                self.on_ground = false;
-                self.jumped = true;
-            }
+            self.jump_buffer = 0.12;
+        }
+        self.jump_buffer -= dt;
+
+        if self.jump_buffer > 0.0 && (self.on_ground || self.coyote_timer > 0.0) {
+            self.vy = JUMP_VELOCITY;
+            self.on_ground = false;
+            self.jumped = true;
+            self.jump_buffer = 0.0;
+            self.coyote_timer = 0.0;
         }
 
         if !self.on_ground
@@ -215,11 +230,7 @@ impl Player {
         for touch in touches() {
             if touch.phase == TouchPhase::Started {
                 if touch.position.x < screen_width() * 0.5 {
-                    if self.on_ground {
-                        self.vy = JUMP_VELOCITY;
-                        self.on_ground = false;
-                        self.jumped = true;
-                    }
+                    self.jump_buffer = 0.12;
                 } else if self.power_state == PowerState::Fire && self.fireballs.len() < 2 {
                     self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
                     self.fired = true;

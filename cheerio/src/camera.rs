@@ -11,19 +11,12 @@ impl GameCamera {
     }
 
     pub fn begin_render(&self) {
-        let scale = (screen_width() / INTERNAL_WIDTH).min(screen_height() / INTERNAL_HEIGHT);
-        let offset_x = (screen_width() - INTERNAL_WIDTH * scale) * 0.5 / scale;
-        let offset_y = (screen_height() - INTERNAL_HEIGHT * scale) * 0.5 / scale;
-
         set_camera(&Camera2D {
             target: vec2(
-                self.scroll_x + INTERNAL_WIDTH * 0.5 - offset_x,
-                INTERNAL_HEIGHT * 0.5 - offset_y,
+                self.scroll_x + INTERNAL_WIDTH * 0.5,
+                INTERNAL_HEIGHT * 0.5,
             ),
-            zoom: vec2(
-                2.0 * scale / screen_width(),
-                2.0 * scale / screen_height(),
-            ),
+            zoom: vec2(2.0 / INTERNAL_WIDTH, 2.0 / INTERNAL_HEIGHT),
             ..Default::default()
         });
     }
