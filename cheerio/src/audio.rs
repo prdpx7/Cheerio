@@ -1,4 +1,6 @@
 use macroquad::audio::{self, Sound, PlaySoundParams};
+use macroquad::prelude::*;
+use crate::constants::*;
 
 pub struct AudioManager {
     pub jump: Option<Sound>,
@@ -12,6 +14,42 @@ pub struct AudioManager {
     pub bgm: Option<Sound>,
 }
 
+const ASSET_PATHS: [&str; 9] = [
+    "assets/audio/smb_jump-small.wav",
+    "assets/audio/smb_coin.wav",
+    "assets/audio/smb_stomp.wav",
+    "assets/audio/smb_powerup.wav",
+    "assets/audio/smb_fireball.wav",
+    "assets/audio/smb_mariodie.wav",
+    "assets/audio/smb_1-up.wav",
+    "assets/audio/smb_bump.wav",
+    "assets/audio/bgm_main.ogg",
+];
+
+fn draw_loading_screen(progress: f32) {
+    clear_background(Color::new(0.29, 0.72, 1.0, 1.0));
+
+    let title = "CHEERIO";
+    let m = measure_text(title, None, 48, 1.0);
+    draw_text(title, (screen_width() - m.width) * 0.5, screen_height() * 0.35, 48.0, WHITE);
+
+    let sub = "An Endless Adventure";
+    let ms = measure_text(sub, None, 16, 1.0);
+    draw_text(sub, (screen_width() - ms.width) * 0.5, screen_height() * 0.35 + 30.0, 16.0, Color::new(1.0, 1.0, 1.0, 0.8));
+
+    let bar_w = 200.0;
+    let bar_h = 10.0;
+    let bar_x = (screen_width() - bar_w) * 0.5;
+    let bar_y = screen_height() * 0.55;
+
+    draw_rectangle(bar_x, bar_y, bar_w, bar_h, Color::new(0.0, 0.0, 0.0, 0.3));
+    draw_rectangle(bar_x, bar_y, bar_w * progress, bar_h, WHITE);
+
+    let label = "Loading...";
+    let ml = measure_text(label, None, 14, 1.0);
+    draw_text(label, (screen_width() - ml.width) * 0.5, bar_y + 28.0, 14.0, Color::new(1.0, 1.0, 1.0, 0.7));
+}
+
 impl AudioManager {
     pub fn new() -> Self {
         Self {
@@ -21,16 +59,30 @@ impl AudioManager {
         }
     }
 
-    pub async fn load(&mut self) {
-        self.jump = audio::load_sound("assets/audio/smb_jump-small.wav").await.ok();
-        self.coin = audio::load_sound("assets/audio/smb_coin.wav").await.ok();
-        self.stomp = audio::load_sound("assets/audio/smb_stomp.wav").await.ok();
-        self.powerup = audio::load_sound("assets/audio/smb_powerup.wav").await.ok();
-        self.fireball = audio::load_sound("assets/audio/smb_fireball.wav").await.ok();
-        self.death = audio::load_sound("assets/audio/smb_mariodie.wav").await.ok();
-        self.oneup = audio::load_sound("assets/audio/smb_1-up.wav").await.ok();
-        self.bump = audio::load_sound("assets/audio/smb_bump.wav").await.ok();
-        self.bgm = audio::load_sound("assets/audio/bgm_main.ogg").await.ok();
+    pub async fn load_with_progress(&mut self) {
+        let total = ASSET_PATHS.len();
+
+        for (i, path) in ASSET_PATHS.iter().enumerate() {
+            draw_loading_screen(i as f32 / total as f32);
+            next_frame().await;
+
+            let sound = audio::load_sound(path).await.ok();
+            match i {
+                0 => self.jump = sound,
+                1 => self.coin = sound,
+                2 => self.stomp = sound,
+                3 => self.powerup = sound,
+                4 => self.fireball = sound,
+                5 => self.death = sound,
+                6 => self.oneup = sound,
+                7 => self.bump = sound,
+                8 => self.bgm = sound,
+                _ => {}
+            }
+        }
+
+        draw_loading_screen(1.0);
+        next_frame().await;
     }
 
     pub fn play_sfx(&self, sfx: Sfx) {

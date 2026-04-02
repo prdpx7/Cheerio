@@ -49,7 +49,7 @@ async fn main() {
     let mut score: Option<ScoreManager> = None;
     let mut zone_manager: Option<ZoneManager> = None;
     let mut audio = AudioManager::new();
-    audio.load().await;
+    audio.load_with_progress().await;
 
     loop {
         let dt = get_frame_time();
