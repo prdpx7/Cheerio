@@ -1,4 +1,4 @@
-# Priyanka Runner -- Design Spec
+# Cheerio -- Design Spec
 
 Mario-inspired endless runner built with Rust + Macroquad, compiled to WASM for the browser. A gift -- polish and fun factor are the top priorities.
 
@@ -101,13 +101,13 @@ Speed and density cap at cycle 4 to keep the game challenging but not impossible
 - **Coins:** 100 points each
 - **Enemy stomp:** 200 base, chain multiplier (200, 400, 800, 1600, 8000)
 - **Power-up collection:** 500 points
-- **High score:** Persisted to browser `localStorage` under key `priyanka_runner_highscore`
+- **High score:** Persisted to browser `localStorage` under key `cheerio_highscore`
 
 ## Screens
 
 ### Title Screen
 
-- Game title "PRIYANKA RUNNER" in pixel-art style lettering, centered
+- Game title "CHEERIO" in pixel-art style lettering, centered
 - Subtitle "An Endless Adventure" below
 - Mario-style animated background (scrolling grassland scene, clouds moving)
 - "PRESS SPACE TO START" blinking text (or "TAP TO START" on mobile)
@@ -177,7 +177,7 @@ Audio will use free chiptune SFX packs or be generated with a simple synth. Macr
 ### Project Structure
 
 ```
-priyanka-runner/
+cheerio/
   Cargo.toml
   src/
     main.rs           -- entry point, game loop, state machine
