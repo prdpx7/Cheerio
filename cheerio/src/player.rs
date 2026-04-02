@@ -83,6 +83,8 @@ impl Player {
             PowerState::Small => PLAYER_HEIGHT_SMALL,
             PowerState::Super | PowerState::Fire => PLAYER_HEIGHT_SUPER,
         };
+
+        self.handle_touch_input();
     }
 
     pub fn rect(&self) -> Rect {
@@ -150,6 +152,21 @@ impl Player {
                     self.y = plat.y - self.height;
                     self.vy = 0.0;
                     self.on_ground = true;
+                }
+            }
+        }
+    }
+
+    pub fn handle_touch_input(&mut self) {
+        for touch in touches() {
+            if touch.phase == TouchPhase::Started {
+                if touch.position.x < screen_width() * 0.5 {
+                    if self.on_ground {
+                        self.vy = JUMP_VELOCITY;
+                        self.on_ground = false;
+                    }
+                } else if self.power_state == PowerState::Fire && self.fireballs.len() < 2 {
+                    self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
                 }
             }
         }
