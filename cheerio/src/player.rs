@@ -19,6 +19,7 @@ pub struct Player {
     pub is_dead: bool,
     pub stomp_chain: usize,
     pub star_timer: f32,
+    pub fireballs: Vec<Fireball>,
 }
 
 impl Player {
@@ -34,6 +35,7 @@ impl Player {
             is_dead: false,
             stomp_chain: 0,
             star_timer: 0.0,
+            fireballs: Vec::new(),
         }
     }
 
@@ -62,6 +64,13 @@ impl Player {
             && self.vy < JUMP_CUT_VELOCITY
         {
             self.vy = JUMP_CUT_VELOCITY;
+        }
+
+        if self.power_state == PowerState::Fire
+            && (is_key_pressed(KeyCode::X) || is_key_pressed(KeyCode::LeftShift) || is_key_pressed(KeyCode::RightShift))
+            && self.fireballs.len() < 2
+        {
+            self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
         }
 
         if !self.on_ground {
@@ -143,6 +152,50 @@ impl Player {
                     self.on_ground = true;
                 }
             }
+        }
+    }
+}
+
+pub struct Fireball {
+    pub x: f32,
+    pub y: f32,
+    pub vx: f32,
+    pub vy: f32,
+    pub alive: bool,
+}
+
+impl Fireball {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self {
+            x,
+            y,
+            vx: 250.0,
+            vy: 0.0,
+            alive: true,
+        }
+    }
+
+    pub fn update(&mut self, dt: f32, ground_rects: &[Rect]) {
+        self.x += self.vx * dt;
+        self.vy += GRAVITY * dt;
+        self.y += self.vy * dt;
+
+        let r = Rect::new(self.x, self.y, 6.0, 6.0);
+        for g in ground_rects {
+            if r.overlaps(g) && self.vy > 0.0 {
+                self.y = g.y - 6.0;
+                self.vy = -150.0;
+            }
+        }
+    }
+
+    pub fn rect(&self) -> Rect {
+        Rect::new(self.x, self.y, 6.0, 6.0)
+    }
+
+    pub fn draw(&self) {
+        if self.alive {
+            draw_circle(self.x + 3.0, self.y + 3.0, 3.0, ORANGE);
         }
     }
 }

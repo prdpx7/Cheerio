@@ -123,6 +123,25 @@ async fn main() {
                         score.as_mut().unwrap().add_stomp(chain_idx);
                     }
 
+                    let ground_rects_for_fb = world.as_ref().unwrap().get_ground_rects();
+                    for fb in &mut p.fireballs {
+                        fb.update(dt, &ground_rects_for_fb);
+                    }
+                    for fb in &mut p.fireballs {
+                        if !fb.alive { continue; }
+                        for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
+                            if enemy.alive && fb.rect().overlaps(&enemy.rect()) {
+                                if enemy.kind != crate::enemy::EnemyKind::BuzzyBeetle {
+                                    enemy.alive = false;
+                                    enemy.death_timer = 0.3;
+                                }
+                                fb.alive = false;
+                                break;
+                            }
+                        }
+                    }
+                    p.fireballs.retain(|fb| fb.alive && fb.x < camera.scroll_x + INTERNAL_WIDTH + 50.0);
+
                     let ground_rects_for_collect = world.as_ref().unwrap().get_ground_rects();
                     let mut coins_collected = 0u32;
                     let mut powerups_collected = 0u32;
@@ -184,6 +203,9 @@ async fn main() {
                     }
 
                     p.draw();
+                    for fb in &p.fireballs {
+                        fb.draw();
+                    }
                     score.as_ref().unwrap().draw_hud(camera.scroll_x, current_zone.name());
                     zone_manager.as_ref().unwrap().draw_transition(camera.scroll_x);
 
