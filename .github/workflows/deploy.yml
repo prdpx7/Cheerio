@@ -55,9 +55,8 @@ jobs:
                   @media (orientation: portrait) {
                       #rotate-msg { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; color: #fff; z-index: 999; align-items: center; justify-content: center; flex-direction: column; font-family: monospace; font-size: 18px; }
                       #rotate-msg span { font-size: 48px; margin-bottom: 16px; }
-                      #glcanvas { display: none; }
                   }
-                  @media (orientation: landscape) { #rotate-msg { display: none; } #glcanvas { display: block; } }
+                  @media (orientation: landscape) { #rotate-msg { display: none; } }
               </style>
           </head>
           <body>
