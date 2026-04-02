@@ -20,7 +20,7 @@ use enemy::Enemy;
 use collision::is_stomp;
 use score::ScoreManager;
 use zone::ZoneManager;
-use audio::AudioManager;
+use audio::{AudioManager, Sfx};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
@@ -49,6 +49,7 @@ async fn main() {
     let mut score: Option<ScoreManager> = None;
     let mut zone_manager: Option<ZoneManager> = None;
     let mut audio = AudioManager::new();
+    audio.load().await;
 
     loop {
         let dt = get_frame_time();
@@ -64,7 +65,6 @@ async fn main() {
                     world = Some(World::new());
                     score = Some(ScoreManager::new());
                     zone_manager = Some(ZoneManager::new());
-                    audio.play_zone_bgm(zone::ZoneType::Grassland);
                     state = GameState::Playing;
                 }
             }
@@ -87,6 +87,15 @@ async fn main() {
 
                 if let Some(ref mut p) = player {
                     p.update(dt, scroll_speed);
+
+                    if p.jumped {
+                        audio.play_sfx(Sfx::Jump);
+                        p.jumped = false;
+                    }
+                    if p.fired {
+                        audio.play_sfx(Sfx::Fireball);
+                        p.fired = false;
+                    }
 
                     let ground_rects = world.as_ref().unwrap().get_ground_rects();
                     let platform_rects = world.as_ref().unwrap().get_platform_rects();
@@ -112,6 +121,7 @@ async fn main() {
                                 } else {
                                     p.take_damage();
                                     if p.is_dead {
+                                        audio.play_sfx(Sfx::Death);
                                         state = GameState::GameOver;
                                         score.as_mut().unwrap().finalize();
                                     }
@@ -126,6 +136,7 @@ async fn main() {
                     }
                     for chain_idx in stomps_this_frame {
                         score.as_mut().unwrap().add_stomp(chain_idx);
+                        audio.play_sfx(Sfx::Stomp);
                     }
 
                     let ground_rects_for_fb = world.as_ref().unwrap().get_ground_rects();
@@ -181,9 +192,11 @@ async fn main() {
                     }
                     for _ in 0..coins_collected {
                         score.as_mut().unwrap().add_coin();
+                        audio.play_sfx(Sfx::Coin);
                     }
                     for _ in 0..powerups_collected {
                         score.as_mut().unwrap().add_powerup();
+                        audio.play_sfx(Sfx::PowerUp);
                     }
 
                     let mut spawned_collectibles = Vec::new();
@@ -198,6 +211,7 @@ async fn main() {
                                 if (player_top - qb_bottom).abs() < 8.0 {
                                     if let Some(item) = qb.hit_block() {
                                         spawned_collectibles.push(item);
+                                        audio.play_sfx(Sfx::Bump);
                                     }
                                 }
                             }
@@ -212,6 +226,7 @@ async fn main() {
                         if fb.hits_player(&p.rect()) {
                             p.take_damage();
                             if p.is_dead {
+                                audio.play_sfx(Sfx::Death);
                                 state = GameState::GameOver;
                                 score.as_mut().unwrap().finalize();
                             }
@@ -223,6 +238,7 @@ async fn main() {
                         if p.rect().overlaps(&t.rect()) {
                             p.take_damage();
                             if p.is_dead {
+                                audio.play_sfx(Sfx::Death);
                                 state = GameState::GameOver;
                                 score.as_mut().unwrap().finalize();
                             }
@@ -237,6 +253,7 @@ async fn main() {
                     zone_manager.as_ref().unwrap().draw_transition(camera.scroll_x);
 
                     if p.y > INTERNAL_HEIGHT + 50.0 {
+                        audio.play_sfx(Sfx::Death);
                         state = GameState::GameOver;
                         score.as_mut().unwrap().finalize();
                     }
@@ -270,7 +287,6 @@ async fn main() {
                     world = None;
                     score = None;
                     zone_manager = None;
-                    audio.stop_bgm();
                 }
             }
         }

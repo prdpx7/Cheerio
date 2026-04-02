@@ -20,6 +20,8 @@ pub struct Player {
     pub stomp_chain: usize,
     pub star_timer: f32,
     pub fireballs: Vec<Fireball>,
+    pub jumped: bool,
+    pub fired: bool,
 }
 
 impl Player {
@@ -36,6 +38,8 @@ impl Player {
             stomp_chain: 0,
             star_timer: 0.0,
             fireballs: Vec::new(),
+            jumped: false,
+            fired: false,
         }
     }
 
@@ -56,6 +60,7 @@ impl Player {
             if self.on_ground {
                 self.vy = JUMP_VELOCITY;
                 self.on_ground = false;
+                self.jumped = true;
             }
         }
 
@@ -71,6 +76,7 @@ impl Player {
             && self.fireballs.len() < 2
         {
             self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
+            self.fired = true;
         }
 
         if !self.on_ground {
@@ -109,7 +115,8 @@ impl Player {
     }
 
     pub fn draw(&self) {
-        let color = if self.star_timer > 0.0 {
+        let star = self.star_timer > 0.0;
+        let rainbow = || {
             let t = (get_time() * 10.0) as u32 % 6;
             match t {
                 0 => RED,
@@ -119,15 +126,62 @@ impl Player {
                 4 => BLUE,
                 _ => PURPLE,
             }
+        };
+
+        let hat_color = if star {
+            rainbow()
         } else {
             match self.power_state {
-                PowerState::Small => RED,
-                PowerState::Super => RED,
+                PowerState::Small | PowerState::Super => Color::new(0.9, 0.1, 0.1, 1.0),
                 PowerState::Fire => WHITE,
             }
         };
 
-        draw_rectangle(self.x, self.y, self.width, self.height, color);
+        let overalls_color = if star {
+            rainbow()
+        } else {
+            match self.power_state {
+                PowerState::Small | PowerState::Super => Color::new(0.1, 0.2, 0.8, 1.0),
+                PowerState::Fire => Color::new(0.9, 0.1, 0.1, 1.0),
+            }
+        };
+
+        let skin = Color::new(0.96, 0.76, 0.53, 1.0);
+        let shoe = Color::new(0.45, 0.22, 0.1, 1.0);
+        let x = self.x;
+        let y = self.y;
+
+        match self.power_state {
+            PowerState::Small => {
+                draw_rectangle(x + 2.0, y, 10.0, 4.0, hat_color);
+                draw_rectangle(x + 0.0, y + 2.0, 3.0, 2.0, hat_color);
+                draw_rectangle(x + 2.0, y + 4.0, 10.0, 4.0, skin);
+                draw_rectangle(x + 4.0, y + 5.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + 8.0, y + 5.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + 10.0, y + 6.0, 3.0, 2.0, skin);
+                draw_rectangle(x + 1.0, y + 8.0, 12.0, 5.0, overalls_color);
+                draw_rectangle(x + 5.0, y + 9.0, 4.0, 2.0, Color::new(0.9, 0.8, 0.2, 1.0));
+                draw_rectangle(x + 1.0, y + 13.0, 5.0, 3.0, shoe);
+                draw_rectangle(x + 8.0, y + 13.0, 5.0, 3.0, shoe);
+            }
+            PowerState::Super | PowerState::Fire => {
+                draw_rectangle(x + 2.0, y, 10.0, 5.0, hat_color);
+                draw_rectangle(x + 0.0, y + 3.0, 3.0, 2.0, hat_color);
+                draw_rectangle(x + 2.0, y + 5.0, 10.0, 5.0, skin);
+                draw_rectangle(x + 4.0, y + 6.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + 8.0, y + 6.0, 2.0, 2.0, BLACK);
+                draw_rectangle(x + 10.0, y + 8.0, 3.0, 2.0, skin);
+                draw_rectangle(x + 6.0, y + 9.0, 3.0, 1.0, Color::new(0.7, 0.5, 0.3, 1.0));
+                draw_rectangle(x + 0.0, y + 10.0, 14.0, 3.0, hat_color);
+                draw_rectangle(x + 1.0, y + 13.0, 12.0, 10.0, overalls_color);
+                draw_rectangle(x + 5.0, y + 14.0, 4.0, 3.0, Color::new(0.9, 0.8, 0.2, 1.0));
+                draw_rectangle(x + 0.0, y + 13.0, 3.0, 5.0, skin);
+                draw_rectangle(x + 11.0, y + 13.0, 3.0, 5.0, skin);
+                draw_rectangle(x + 1.0, y + 23.0, 12.0, 4.0, overalls_color);
+                draw_rectangle(x + 0.0, y + 27.0, 6.0, 5.0, shoe);
+                draw_rectangle(x + 8.0, y + 27.0, 6.0, 5.0, shoe);
+            }
+        }
     }
 
     pub fn resolve_terrain(&mut self, ground_rects: &[Rect], platform_rects: &[Rect]) {
@@ -164,9 +218,11 @@ impl Player {
                     if self.on_ground {
                         self.vy = JUMP_VELOCITY;
                         self.on_ground = false;
+                        self.jumped = true;
                     }
                 } else if self.power_state == PowerState::Fire && self.fireballs.len() < 2 {
                     self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
+                    self.fired = true;
                 }
             }
         }
@@ -212,7 +268,15 @@ impl Fireball {
 
     pub fn draw(&self) {
         if self.alive {
-            draw_circle(self.x + 3.0, self.y + 3.0, 3.0, ORANGE);
+            let t = (get_time() * 8.0).sin() as f32;
+            let outer = Color::new(1.0, 0.3 + t * 0.1, 0.0, 0.4);
+            let mid = Color::new(1.0, 0.5 + t * 0.15, 0.0, 0.8);
+            let core = Color::new(1.0, 0.9, 0.2, 1.0);
+            draw_circle(self.x + 3.0, self.y + 3.0, 5.0, outer);
+            draw_circle(self.x + 3.0, self.y + 3.0, 3.5, mid);
+            draw_circle(self.x + 3.0, self.y + 3.0, 2.0, core);
+            draw_circle(self.x - 1.0, self.y + 3.0, 2.0, Color::new(1.0, 0.4, 0.0, 0.3));
+            draw_circle(self.x - 4.0, self.y + 3.0, 1.5, Color::new(1.0, 0.3, 0.0, 0.15));
         }
     }
 }
