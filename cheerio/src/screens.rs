@@ -12,12 +12,13 @@ pub fn draw_title_screen(high_score: u32, camera_x: f32) -> bool {
 
     let blink = (get_time() * 2.0).sin() > 0.0;
     if blink {
-        draw_text("PRESS SPACE TO START", cx + INTERNAL_WIDTH * 0.5 - 90.0, 180.0, 18.0, WHITE);
+        draw_text("TAP OR PRESS SPACE", cx + INTERNAL_WIDTH * 0.5 - 82.0, 180.0, 18.0, WHITE);
     }
 
     draw_text(&format!("HI-SCORE: {}", high_score), cx + INTERNAL_WIDTH * 0.5 - 60.0, 30.0, 16.0, GOLD);
 
-    is_key_pressed(KeyCode::Space)
+    let tapped = touches().iter().any(|t| t.phase == TouchPhase::Started);
+    is_key_pressed(KeyCode::Space) || tapped || is_mouse_button_pressed(MouseButton::Left)
 }
 
 pub fn draw_pause_screen(camera_x: f32) -> bool {
@@ -36,14 +37,15 @@ pub fn draw_pause_screen(camera_x: f32) -> bool {
         WHITE,
     );
     draw_text(
-        "Press ESC to Resume",
-        camera_x + INTERNAL_WIDTH * 0.5 - 80.0,
+        "TAP or ESC to Resume",
+        camera_x + INTERNAL_WIDTH * 0.5 - 85.0,
         INTERNAL_HEIGHT * 0.5 + 30.0,
         16.0,
         Color::new(1.0, 1.0, 1.0, 0.7),
     );
 
-    is_key_pressed(KeyCode::Escape)
+    let tapped = touches().iter().any(|t| t.phase == TouchPhase::Started);
+    is_key_pressed(KeyCode::Escape) || tapped || is_mouse_button_pressed(MouseButton::Left)
 }
 
 pub fn draw_game_over_screen(score: &ScoreManager, camera_x: f32) -> bool {
@@ -67,8 +69,9 @@ pub fn draw_game_over_screen(score: &ScoreManager, camera_x: f32) -> bool {
 
     let blink = (get_time() * 2.0).sin() > 0.0;
     if blink {
-        draw_text("PRESS SPACE TO PLAY AGAIN", cx + INTERNAL_WIDTH * 0.5 - 110.0, 245.0, 16.0, WHITE);
+        draw_text("TAP OR PRESS SPACE", cx + INTERNAL_WIDTH * 0.5 - 82.0, 245.0, 16.0, WHITE);
     }
 
-    is_key_pressed(KeyCode::Space)
+    let tapped = touches().iter().any(|t| t.phase == TouchPhase::Started);
+    is_key_pressed(KeyCode::Space) || tapped || is_mouse_button_pressed(MouseButton::Left)
 }

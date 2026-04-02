@@ -8,9 +8,28 @@
         * { margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; }
+        @media (orientation: portrait) {
+            #rotate-msg {
+                display: flex;
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: #111; color: #fff; z-index: 999;
+                align-items: center; justify-content: center;
+                flex-direction: column; font-family: monospace; font-size: 18px;
+            }
+            #rotate-msg span { font-size: 48px; margin-bottom: 16px; }
+            #glcanvas { display: none; }
+        }
+        @media (orientation: landscape) {
+            #rotate-msg { display: none; }
+            #glcanvas { display: block; }
+        }
     </style>
 </head>
 <body>
+    <div id="rotate-msg">
+        <span>&#x21BB;</span>
+        Rotate your phone to landscape
+    </div>
     <canvas id="glcanvas" tabindex="1"></canvas>
     <script src="gl.js"></script>
     <script>load("cheerio.wasm");</script>
