@@ -7,6 +7,9 @@ mod enemy;
 mod collectible;
 mod score;
 mod zone;
+mod screens;
+mod renderer;
+mod audio;
 
 use macroquad::prelude::*;
 use constants::*;
@@ -17,6 +20,7 @@ use enemy::Enemy;
 use collision::is_stomp;
 use score::ScoreManager;
 use zone::ZoneManager;
+use audio::AudioManager;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
@@ -44,6 +48,7 @@ async fn main() {
     let mut world: Option<World> = None;
     let mut score: Option<ScoreManager> = None;
     let mut zone_manager: Option<ZoneManager> = None;
+    let mut audio = AudioManager::new();
 
     loop {
         let dt = get_frame_time();
@@ -53,14 +58,13 @@ async fn main() {
 
         match state {
             GameState::Title => {
-                draw_text("CHEERIO", INTERNAL_WIDTH * 0.5 - 60.0, 100.0, 40.0, WHITE);
-                draw_text("Press SPACE to Start", INTERNAL_WIDTH * 0.5 - 90.0, 160.0, 20.0, WHITE);
-
-                if is_key_pressed(KeyCode::Space) {
+                let high_score = score.as_ref().map(|s| s.high_score).unwrap_or(0);
+                if screens::draw_title_screen(high_score) {
                     player = Some(Player::new(camera.scroll_x));
                     world = Some(World::new());
                     score = Some(ScoreManager::new());
                     zone_manager = Some(ZoneManager::new());
+                    audio.play_zone_bgm(zone::ZoneType::Grassland);
                     state = GameState::Playing;
                 }
             }
@@ -72,6 +76,7 @@ async fn main() {
                 let zone_cycle = zone_manager.as_ref().unwrap().cycle;
 
                 clear_background(current_zone.bg_color());
+                renderer::draw_parallax_background(current_zone, camera.scroll_x);
 
                 camera.advance(scroll_speed, dt);
                 score.as_mut().unwrap().add_distance(scroll_speed * dt);
@@ -202,6 +207,28 @@ async fn main() {
                         world.as_mut().unwrap().add_collectible_to_nearest_chunk(item);
                     }
 
+                    for fb in world.as_mut().unwrap().get_all_fire_bars_mut() {
+                        fb.update(dt);
+                        if fb.hits_player(&p.rect()) {
+                            p.take_damage();
+                            if p.is_dead {
+                                state = GameState::GameOver;
+                                score.as_mut().unwrap().finalize();
+                            }
+                        }
+                    }
+
+                    for t in world.as_mut().unwrap().get_all_thwomps_mut() {
+                        t.update(dt, p.x);
+                        if p.rect().overlaps(&t.rect()) {
+                            p.take_damage();
+                            if p.is_dead {
+                                state = GameState::GameOver;
+                                score.as_mut().unwrap().finalize();
+                            }
+                        }
+                    }
+
                     p.draw();
                     for fb in &p.fireballs {
                         fb.draw();
@@ -220,29 +247,30 @@ async fn main() {
                 }
             }
             GameState::Paused => {
-                draw_text("PAUSED (ESC to resume)", INTERNAL_WIDTH * 0.5 - 100.0 + camera.scroll_x, 130.0, 24.0, WHITE);
-
+                let current_zone = zone_manager.as_ref().unwrap().current;
+                clear_background(current_zone.bg_color());
+                renderer::draw_parallax_background(current_zone, camera.scroll_x);
                 world.as_ref().unwrap().draw();
 
                 if let Some(ref p) = player {
                     p.draw();
                 }
 
-                if is_key_pressed(KeyCode::Escape) {
+                score.as_ref().unwrap().draw_hud(camera.scroll_x, current_zone.name());
+
+                if screens::draw_pause_screen(camera.scroll_x) {
                     state = GameState::Playing;
                 }
             }
             GameState::GameOver => {
-                draw_text("GAME OVER", INTERNAL_WIDTH * 0.5 - 80.0 + camera.scroll_x, 100.0, 40.0, WHITE);
-                draw_text("Press SPACE to Restart", INTERNAL_WIDTH * 0.5 - 90.0 + camera.scroll_x, 160.0, 20.0, WHITE);
-
-                if is_key_pressed(KeyCode::Space) {
+                if screens::draw_game_over_screen(score.as_ref().unwrap()) {
                     state = GameState::Title;
                     camera = GameCamera::new();
                     player = None;
                     world = None;
                     score = None;
                     zone_manager = None;
+                    audio.stop_bgm();
                 }
             }
         }

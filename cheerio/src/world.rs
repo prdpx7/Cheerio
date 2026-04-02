@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 use crate::constants::*;
-use crate::enemy::{Enemy, EnemyKind};
+use crate::enemy::{Enemy, FireBar, Thwomp};
 use crate::collectible::{Collectible, CollectibleKind, QuestionBlock};
 use crate::zone::ZoneType;
 
@@ -21,6 +21,8 @@ pub struct Chunk {
     pub enemies: Vec<Enemy>,
     pub coins: Vec<Collectible>,
     pub question_blocks: Vec<QuestionBlock>,
+    pub fire_bars: Vec<FireBar>,
+    pub thwomps: Vec<Thwomp>,
     pub zone: ZoneType,
 }
 
@@ -105,6 +107,19 @@ impl Chunk {
             question_blocks.push(QuestionBlock::new(qx, qy, contents));
         }
 
+        let mut fire_bars = Vec::new();
+        let mut thwomps = Vec::new();
+        if zone == ZoneType::Castle {
+            if rand::gen_range(0.0, 1.0) < 0.4 {
+                let fbx = x + rand::gen_range(TILE_SIZE * 4.0, CHUNK_WIDTH - TILE_SIZE * 4.0);
+                fire_bars.push(FireBar::new(fbx, GROUND_Y - TILE_SIZE * 3.0));
+            }
+            if rand::gen_range(0.0, 1.0) < 0.3 {
+                let tx = x + rand::gen_range(TILE_SIZE * 3.0, CHUNK_WIDTH - TILE_SIZE * 3.0);
+                thwomps.push(Thwomp::new(tx, TILE_SIZE * 2.0));
+            }
+        }
+
         Self {
             x,
             ground_segments,
@@ -115,6 +130,8 @@ impl Chunk {
             enemies,
             coins,
             question_blocks,
+            fire_bars,
+            thwomps,
             zone,
         }
     }
@@ -147,6 +164,12 @@ impl Chunk {
         for qb in &self.question_blocks {
             qb.draw();
         }
+        for fb in &self.fire_bars {
+            fb.draw();
+        }
+        for t in &self.thwomps {
+            t.draw();
+        }
     }
 }
 
@@ -168,6 +191,8 @@ impl World {
             enemies: vec![],
             coins: vec![],
             question_blocks: vec![],
+            fire_bars: vec![],
+            thwomps: vec![],
             zone: ZoneType::Grassland,
         });
         for i in 1..CHUNK_BUFFER {
@@ -223,6 +248,14 @@ impl World {
 
     pub fn get_all_question_blocks_mut(&mut self) -> Vec<&mut QuestionBlock> {
         self.chunks.iter_mut().flat_map(|c| c.question_blocks.iter_mut()).collect()
+    }
+
+    pub fn get_all_fire_bars_mut(&mut self) -> Vec<&mut FireBar> {
+        self.chunks.iter_mut().flat_map(|c| c.fire_bars.iter_mut()).collect()
+    }
+
+    pub fn get_all_thwomps_mut(&mut self) -> Vec<&mut Thwomp> {
+        self.chunks.iter_mut().flat_map(|c| c.thwomps.iter_mut()).collect()
     }
 
     pub fn add_collectible_to_nearest_chunk(&mut self, collectible: Collectible) {
