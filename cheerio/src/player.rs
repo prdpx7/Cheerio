@@ -70,12 +70,6 @@ impl Player {
 
         self.y += self.vy * dt;
 
-        if self.y + self.height >= GROUND_Y + self.height {
-            self.y = GROUND_Y;
-            self.vy = 0.0;
-            self.on_ground = true;
-        }
-
         self.height = match self.power_state {
             PowerState::Small => PLAYER_HEIGHT_SMALL,
             PowerState::Super | PowerState::Fire => PLAYER_HEIGHT_SUPER,

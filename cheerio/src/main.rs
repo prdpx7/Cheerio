@@ -1,11 +1,14 @@
 mod constants;
 mod camera;
 mod player;
+mod collision;
+mod world;
 
 use macroquad::prelude::*;
 use constants::*;
 use camera::GameCamera;
 use player::Player;
+use world::World;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
@@ -30,6 +33,7 @@ async fn main() {
     let mut state = GameState::Title;
     let mut camera = GameCamera::new();
     let mut player: Option<Player> = None;
+    let mut world: Option<World> = None;
 
     loop {
         let dt = get_frame_time();
@@ -44,6 +48,7 @@ async fn main() {
 
                 if is_key_pressed(KeyCode::Space) {
                     player = Some(Player::new(camera.scroll_x));
+                    world = Some(World::new());
                     state = GameState::Playing;
                 }
             }
@@ -51,8 +56,16 @@ async fn main() {
                 camera.advance(SCROLL_SPEED_BASE, dt);
                 draw_text("Playing... (ESC to pause)", 10.0 + camera.scroll_x, 30.0, 20.0, WHITE);
 
+                world.as_mut().unwrap().update(camera.scroll_x);
+                world.as_ref().unwrap().draw();
+
                 if let Some(ref mut p) = player {
                     p.update(dt, SCROLL_SPEED_BASE);
+
+                    let ground_rects = world.as_ref().unwrap().get_ground_rects();
+                    let platform_rects = world.as_ref().unwrap().get_platform_rects();
+                    p.resolve_terrain(&ground_rects, &platform_rects);
+
                     p.draw();
 
                     if p.y > INTERNAL_HEIGHT + 50.0 {
@@ -66,6 +79,8 @@ async fn main() {
             }
             GameState::Paused => {
                 draw_text("PAUSED (ESC to resume)", INTERNAL_WIDTH * 0.5 - 100.0 + camera.scroll_x, 130.0, 24.0, WHITE);
+
+                world.as_ref().unwrap().draw();
 
                 if let Some(ref p) = player {
                     p.draw();
@@ -83,6 +98,7 @@ async fn main() {
                     state = GameState::Title;
                     camera = GameCamera::new();
                     player = None;
+                    world = None;
                 }
             }
         }
