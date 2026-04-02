@@ -2,6 +2,7 @@ use macroquad::prelude::*;
 use crate::constants::*;
 use crate::enemy::{Enemy, EnemyKind};
 use crate::collectible::{Collectible, CollectibleKind, QuestionBlock};
+use crate::zone::ZoneType;
 
 #[derive(Debug, Clone)]
 pub struct Platform {
@@ -20,10 +21,11 @@ pub struct Chunk {
     pub enemies: Vec<Enemy>,
     pub coins: Vec<Collectible>,
     pub question_blocks: Vec<QuestionBlock>,
+    pub zone: ZoneType,
 }
 
 impl Chunk {
-    pub fn generate(x: f32, cycle: u32) -> Self {
+    pub fn generate(x: f32, cycle: u32, zone: ZoneType) -> Self {
         let mut ground_segments = Vec::new();
         let mut platforms = Vec::new();
         let has_gap;
@@ -73,11 +75,8 @@ impl Chunk {
                 true
             };
             if on_valid_ground {
-                let kind = if rand::gen_range(0.0, 1.0) < 0.6 {
-                    EnemyKind::Goomba
-                } else {
-                    EnemyKind::Koopa
-                };
+                let pool = zone.enemy_pool();
+                let kind = pool[rand::gen_range(0, pool.len())];
                 enemies.push(Enemy::new(kind, ex, GROUND_Y));
             }
         }
@@ -116,12 +115,13 @@ impl Chunk {
             enemies,
             coins,
             question_blocks,
+            zone,
         }
     }
 
     pub fn draw(&self) {
-        let ground_color = Color::new(0.6, 0.4, 0.2, 1.0);
-        let ground_top_color = Color::new(0.3, 0.7, 0.3, 1.0);
+        let ground_color = self.zone.ground_color();
+        let ground_top_color = self.zone.ground_top_color();
 
         for seg in &self.ground_segments {
             draw_rectangle(seg.x, seg.y + 4.0, seg.w, seg.h - 4.0, ground_color);
@@ -168,19 +168,21 @@ impl World {
             enemies: vec![],
             coins: vec![],
             question_blocks: vec![],
+            zone: ZoneType::Grassland,
         });
         for i in 1..CHUNK_BUFFER {
-            chunks.push(Chunk::generate(i as f32 * CHUNK_WIDTH, 0));
+            chunks.push(Chunk::generate(i as f32 * CHUNK_WIDTH, 0, ZoneType::Grassland));
         }
         Self { chunks, cycle: 0 }
     }
 
-    pub fn update(&mut self, camera_x: f32) {
+    pub fn update(&mut self, camera_x: f32, zone: ZoneType, cycle: u32) {
+        self.cycle = cycle;
         let rightmost = self.chunks.iter().map(|c| c.x).fold(0.0_f32, f32::max);
 
         while rightmost + CHUNK_WIDTH < camera_x + INTERNAL_WIDTH * 2.0 {
             let next_x = self.chunks.iter().map(|c| c.x + CHUNK_WIDTH).fold(0.0_f32, f32::max);
-            self.chunks.push(Chunk::generate(next_x, self.cycle));
+            self.chunks.push(Chunk::generate(next_x, self.cycle, zone));
             break;
         }
 

@@ -6,6 +6,7 @@ mod world;
 mod enemy;
 mod collectible;
 mod score;
+mod zone;
 
 use macroquad::prelude::*;
 use constants::*;
@@ -15,6 +16,7 @@ use world::World;
 use enemy::Enemy;
 use collision::is_stomp;
 use score::ScoreManager;
+use zone::ZoneManager;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
@@ -41,6 +43,7 @@ async fn main() {
     let mut player: Option<Player> = None;
     let mut world: Option<World> = None;
     let mut score: Option<ScoreManager> = None;
+    let mut zone_manager: Option<ZoneManager> = None;
 
     loop {
         let dt = get_frame_time();
@@ -57,18 +60,28 @@ async fn main() {
                     player = Some(Player::new(camera.scroll_x));
                     world = Some(World::new());
                     score = Some(ScoreManager::new());
+                    zone_manager = Some(ZoneManager::new());
                     state = GameState::Playing;
                 }
             }
             GameState::Playing => {
-                camera.advance(SCROLL_SPEED_BASE, dt);
-                score.as_mut().unwrap().add_distance(SCROLL_SPEED_BASE * dt);
+                zone_manager.as_mut().unwrap().update(dt);
 
-                world.as_mut().unwrap().update(camera.scroll_x);
+                let scroll_speed = zone_manager.as_ref().unwrap().scroll_speed();
+                let current_zone = zone_manager.as_ref().unwrap().current;
+                let zone_cycle = zone_manager.as_ref().unwrap().cycle;
+
+                clear_background(current_zone.bg_color());
+
+                camera.advance(scroll_speed, dt);
+                score.as_mut().unwrap().add_distance(scroll_speed * dt);
+                score.as_mut().unwrap().cycle = zone_cycle + 1;
+
+                world.as_mut().unwrap().update(camera.scroll_x, current_zone, zone_cycle);
                 world.as_ref().unwrap().draw();
 
                 if let Some(ref mut p) = player {
-                    p.update(dt, SCROLL_SPEED_BASE);
+                    p.update(dt, scroll_speed);
 
                     let ground_rects = world.as_ref().unwrap().get_ground_rects();
                     let platform_rects = world.as_ref().unwrap().get_platform_rects();
@@ -171,7 +184,8 @@ async fn main() {
                     }
 
                     p.draw();
-                    score.as_ref().unwrap().draw_hud(camera.scroll_x, "GRASSLAND");
+                    score.as_ref().unwrap().draw_hud(camera.scroll_x, current_zone.name());
+                    zone_manager.as_ref().unwrap().draw_transition(camera.scroll_x);
 
                     if p.y > INTERNAL_HEIGHT + 50.0 {
                         state = GameState::GameOver;
@@ -206,6 +220,7 @@ async fn main() {
                     player = None;
                     world = None;
                     score = None;
+                    zone_manager = None;
                 }
             }
         }
