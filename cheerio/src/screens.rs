@@ -57,10 +57,9 @@ pub fn draw_game_over_screen(score: &ScoreManager, camera_x: f32) -> bool {
     let dist = format!("Distance: {:.0}", score.distance);
     let coins = format!("Coins: {}", score.coins);
     let enemies = format!("Enemies: {}", score.enemies_stomped);
-    let stats_x = camera_x + INTERNAL_WIDTH * 0.3;
-    draw_text(&dist, stats_x, 140.0, 16.0, LIGHTGRAY);
-    draw_text(&coins, stats_x, 160.0, 16.0, GOLD);
-    draw_text(&enemies, stats_x, 180.0, 16.0, LIGHTGRAY);
+    draw_text(&dist, center_x(&dist, 16.0, camera_x), 140.0, 16.0, LIGHTGRAY);
+    draw_text(&coins, center_x(&coins, 16.0, camera_x), 160.0, 16.0, GOLD);
+    draw_text(&enemies, center_x(&enemies, 16.0, camera_x), 180.0, 16.0, LIGHTGRAY);
 
     if score.is_new_high_score() {
         let blink = (get_time() * 3.0).sin() > 0.0;
