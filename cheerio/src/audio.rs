@@ -9,6 +9,7 @@ pub struct AudioManager {
     pub death: Option<Sound>,
     pub oneup: Option<Sound>,
     pub bump: Option<Sound>,
+    pub bgm: Option<Sound>,
 }
 
 impl AudioManager {
@@ -16,6 +17,7 @@ impl AudioManager {
         Self {
             jump: None, coin: None, stomp: None, powerup: None,
             fireball: None, death: None, oneup: None, bump: None,
+            bgm: None,
         }
     }
 
@@ -28,6 +30,7 @@ impl AudioManager {
         self.death = audio::load_sound("assets/audio/smb_mariodie.wav").await.ok();
         self.oneup = audio::load_sound("assets/audio/smb_1-up.wav").await.ok();
         self.bump = audio::load_sound("assets/audio/smb_bump.wav").await.ok();
+        self.bgm = audio::load_sound("assets/audio/bgm_main.ogg").await.ok();
     }
 
     pub fn play_sfx(&self, sfx: Sfx) {
@@ -46,6 +49,21 @@ impl AudioManager {
                 looped: false,
                 volume: 0.5,
             });
+        }
+    }
+
+    pub fn play_bgm(&self) {
+        if let Some(s) = &self.bgm {
+            audio::play_sound(s, PlaySoundParams {
+                looped: true,
+                volume: 0.3,
+            });
+        }
+    }
+
+    pub fn stop_bgm(&self) {
+        if let Some(s) = &self.bgm {
+            audio::stop_sound(s);
         }
     }
 }

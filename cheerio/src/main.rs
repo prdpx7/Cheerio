@@ -69,6 +69,7 @@ async fn main() {
                     world = Some(World::new());
                     score = Some(ScoreManager::new());
                     zone_manager = Some(ZoneManager::new());
+                    audio.play_bgm();
                     state = GameState::Playing;
                 }
             }
@@ -284,6 +285,7 @@ async fn main() {
                 }
             }
             GameState::GameOver => {
+                audio.stop_bgm();
                 if screens::draw_game_over_screen(score.as_ref().unwrap(), camera.scroll_x) {
                     state = GameState::Title;
                     camera = GameCamera::new();
