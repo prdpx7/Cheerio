@@ -4,11 +4,12 @@ mod player;
 mod collision;
 mod world;
 mod enemy;
+mod collectible;
 
 use macroquad::prelude::*;
 use constants::*;
 use camera::GameCamera;
-use player::Player;
+use player::{Player, PowerState};
 use world::World;
 use enemy::Enemy;
 use collision::is_stomp;
@@ -97,6 +98,53 @@ async fn main() {
                         if let Some(chunk) = world.as_mut().unwrap().chunks.last_mut() {
                             chunk.enemies.push(shell);
                         }
+                    }
+
+                    let ground_rects_for_collect = world.as_ref().unwrap().get_ground_rects();
+                    for c in world.as_mut().unwrap().get_all_collectibles_mut() {
+                        c.update(dt, &ground_rects_for_collect);
+                        if !c.collected && c.active && p.rect().overlaps(&c.rect()) {
+                            c.collected = true;
+                            match c.kind {
+                                collectible::CollectibleKind::Coin => {}
+                                collectible::CollectibleKind::Mushroom => {
+                                    if p.power_state == PowerState::Small {
+                                        p.power_state = PowerState::Super;
+                                    }
+                                }
+                                collectible::CollectibleKind::FireFlower => {
+                                    if p.power_state == PowerState::Super {
+                                        p.power_state = PowerState::Fire;
+                                    } else if p.power_state == PowerState::Small {
+                                        p.power_state = PowerState::Super;
+                                    }
+                                }
+                                collectible::CollectibleKind::Star => {
+                                    p.star_timer = STAR_DURATION;
+                                }
+                            }
+                        }
+                    }
+
+                    let mut spawned_collectibles = Vec::new();
+                    for qb in world.as_mut().unwrap().get_all_question_blocks_mut() {
+                        qb.update(dt);
+                        if !qb.hit {
+                            let player_rect = p.rect();
+                            let qb_rect = qb.rect();
+                            if player_rect.overlaps(&qb_rect) && p.vy < 0.0 {
+                                let player_top = player_rect.y;
+                                let qb_bottom = qb_rect.y + qb_rect.h;
+                                if (player_top - qb_bottom).abs() < 8.0 {
+                                    if let Some(item) = qb.hit_block() {
+                                        spawned_collectibles.push(item);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for item in spawned_collectibles {
+                        world.as_mut().unwrap().add_collectible_to_nearest_chunk(item);
                     }
 
                     p.draw();

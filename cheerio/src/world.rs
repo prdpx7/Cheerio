@@ -1,6 +1,7 @@
 use macroquad::prelude::*;
 use crate::constants::*;
 use crate::enemy::{Enemy, EnemyKind};
+use crate::collectible::{Collectible, CollectibleKind, QuestionBlock};
 
 #[derive(Debug, Clone)]
 pub struct Platform {
@@ -17,6 +18,8 @@ pub struct Chunk {
     pub gap_start: f32,
     pub gap_width: f32,
     pub enemies: Vec<Enemy>,
+    pub coins: Vec<Collectible>,
+    pub question_blocks: Vec<QuestionBlock>,
 }
 
 impl Chunk {
@@ -79,6 +82,30 @@ impl Chunk {
             }
         }
 
+        let mut coins = Vec::new();
+        let coin_count = rand::gen_range(0, 6);
+        for _ in 0..coin_count {
+            let cx = x + rand::gen_range(TILE_SIZE, CHUNK_WIDTH - TILE_SIZE);
+            let cy = GROUND_Y - rand::gen_range(2, 5) as f32 * TILE_SIZE;
+            coins.push(Collectible::new(CollectibleKind::Coin, cx, cy));
+        }
+
+        let mut question_blocks = Vec::new();
+        let qb_count = rand::gen_range(0, 2);
+        for _ in 0..qb_count {
+            let qx = x + rand::gen_range(TILE_SIZE * 3.0, CHUNK_WIDTH - TILE_SIZE * 3.0);
+            let qy = GROUND_Y - rand::gen_range(3, 5) as f32 * TILE_SIZE;
+            let roll = rand::gen_range(0.0, 1.0);
+            let contents = if roll < 0.7 {
+                CollectibleKind::Coin
+            } else if roll < 0.9 {
+                CollectibleKind::Mushroom
+            } else {
+                CollectibleKind::FireFlower
+            };
+            question_blocks.push(QuestionBlock::new(qx, qy, contents));
+        }
+
         Self {
             x,
             ground_segments,
@@ -87,6 +114,8 @@ impl Chunk {
             gap_start,
             gap_width,
             enemies,
+            coins,
+            question_blocks,
         }
     }
 
@@ -111,6 +140,13 @@ impl Chunk {
         for enemy in &self.enemies {
             enemy.draw();
         }
+
+        for coin in &self.coins {
+            coin.draw();
+        }
+        for qb in &self.question_blocks {
+            qb.draw();
+        }
     }
 }
 
@@ -130,6 +166,8 @@ impl World {
             gap_start: 0.0,
             gap_width: 0.0,
             enemies: vec![],
+            coins: vec![],
+            question_blocks: vec![],
         });
         for i in 1..CHUNK_BUFFER {
             chunks.push(Chunk::generate(i as f32 * CHUNK_WIDTH, 0));
@@ -175,5 +213,19 @@ impl World {
 
     pub fn get_all_enemies_mut(&mut self) -> Vec<&mut Enemy> {
         self.chunks.iter_mut().flat_map(|c| c.enemies.iter_mut()).collect()
+    }
+
+    pub fn get_all_collectibles_mut(&mut self) -> Vec<&mut Collectible> {
+        self.chunks.iter_mut().flat_map(|c| c.coins.iter_mut()).collect()
+    }
+
+    pub fn get_all_question_blocks_mut(&mut self) -> Vec<&mut QuestionBlock> {
+        self.chunks.iter_mut().flat_map(|c| c.question_blocks.iter_mut()).collect()
+    }
+
+    pub fn add_collectible_to_nearest_chunk(&mut self, collectible: Collectible) {
+        if let Some(chunk) = self.chunks.last_mut() {
+            chunk.coins.push(collectible);
+        }
     }
 }
