@@ -57,12 +57,100 @@ async fn main() {
         if screen_width() < screen_height() {
             set_default_camera();
             clear_background(Color::new(0.07, 0.07, 0.1, 1.0));
-            let arrow = "^";
-            let ma = measure_text(arrow, None, 60, 1.0);
-            draw_text(arrow, (screen_width() - ma.width) * 0.5, screen_height() * 0.4, 60.0, WHITE);
-            let msg = "Rotate to Landscape";
-            let mm = measure_text(msg, None, 24, 1.0);
-            draw_text(msg, (screen_width() - mm.width) * 0.5, screen_height() * 0.5, 24.0, WHITE);
+
+            let t = get_time() as f32;
+            let cx = screen_width() * 0.5;
+            let cy = screen_height() * 0.42;
+            let phase = (t % 4.0) / 4.0;
+
+            let phone_w = 40.0;
+            let phone_h = 70.0;
+
+            if phase < 0.5 {
+                let p = (phase / 0.5).min(1.0);
+
+                draw_rectangle(cx - phone_w * 0.5, cy - phone_h * 0.5, phone_w, phone_h, Color::new(0.3, 0.3, 0.35, 1.0));
+                draw_rectangle(cx - phone_w * 0.5 + 3.0, cy - phone_h * 0.5 + 6.0, phone_w - 6.0, phone_h - 14.0, Color::new(0.15, 0.15, 0.2, 1.0));
+                draw_circle(cx, cy + phone_h * 0.5 - 5.0, 3.0, Color::new(0.4, 0.4, 0.45, 1.0));
+
+                let lock_y = cy - phone_h * 0.5 - 20.0;
+                let lock_color = if p < 0.6 {
+                    WHITE
+                } else {
+                    Color::new(0.3, 0.9, 0.3, 1.0)
+                };
+
+                if p < 0.6 {
+                    draw_rectangle(cx - 8.0, lock_y + 10.0, 16.0, 14.0, lock_color);
+                    draw_rectangle(cx - 5.0, lock_y, 10.0, 12.0, Color::new(0.07, 0.07, 0.1, 1.0));
+                    draw_rectangle(cx - 5.0, lock_y + 2.0, 2.0, 10.0, lock_color);
+                    draw_rectangle(cx + 3.0, lock_y + 2.0, 2.0, 10.0, lock_color);
+                    draw_rectangle(cx - 5.0, lock_y, 10.0, 2.0, lock_color);
+                } else {
+                    draw_rectangle(cx - 8.0, lock_y + 10.0, 16.0, 14.0, lock_color);
+                    let swing = (p - 0.6) / 0.4 * 0.8;
+                    draw_rectangle(cx - 5.0 - swing * 8.0, lock_y, 10.0, 12.0, Color::new(0.07, 0.07, 0.1, 1.0));
+                    draw_rectangle(cx - 5.0 - swing * 8.0, lock_y + 2.0, 2.0, 10.0, lock_color);
+                    draw_rectangle(cx + 3.0 - swing * 8.0, lock_y + 2.0, 2.0, 10.0, lock_color);
+                    draw_rectangle(cx - 5.0 - swing * 8.0, lock_y, 10.0, 2.0, lock_color);
+                }
+
+                let step1 = "1. Unlock Portrait Lock";
+                let ms1 = measure_text(step1, None, 16, 1.0);
+                draw_text(step1, (screen_width() - ms1.width) * 0.5, cy + phone_h * 0.5 + 30.0, 16.0, WHITE);
+            } else {
+                let p = ((phase - 0.5) / 0.5).min(1.0);
+                let angle = p * std::f32::consts::FRAC_PI_2;
+
+                let cos_a = angle.cos();
+                let sin_a = angle.sin();
+
+                let hw = phone_w * 0.5;
+                let hh = phone_h * 0.5;
+
+                let corners = [
+                    (-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)
+                ];
+                let rotated: Vec<(f32, f32)> = corners.iter().map(|(x, y)| {
+                    (cx + x * cos_a - y * sin_a, cy + x * sin_a + y * cos_a)
+                }).collect();
+
+                for i in 0..4 {
+                    let j = (i + 1) % 4;
+                    draw_line(rotated[i].0, rotated[i].1, rotated[j].0, rotated[j].1, 2.0, Color::new(0.3, 0.3, 0.35, 1.0));
+                }
+
+                let inner_margin = 4.0;
+                let iw = hw - inner_margin;
+                let ih = hh - inner_margin * 1.5;
+                let ic: Vec<(f32, f32)> = [(-iw, -ih), (iw, -ih), (iw, ih), (-iw, ih)].iter().map(|(x, y)| {
+                    (cx + x * cos_a - y * sin_a, cy + x * sin_a + y * cos_a)
+                }).collect();
+
+                draw_triangle(
+                    vec2(ic[0].0, ic[0].1), vec2(ic[1].0, ic[1].1), vec2(ic[2].0, ic[2].1),
+                    Color::new(0.15, 0.15, 0.2, 1.0),
+                );
+                draw_triangle(
+                    vec2(ic[0].0, ic[0].1), vec2(ic[2].0, ic[2].1), vec2(ic[3].0, ic[3].1),
+                    Color::new(0.15, 0.15, 0.2, 1.0),
+                );
+
+                let step2 = "2. Rotate Your Phone";
+                let ms2 = measure_text(step2, None, 16, 1.0);
+                draw_text(step2, (screen_width() - ms2.width) * 0.5, cy + phone_h * 0.5 + 50.0, 16.0, WHITE);
+            }
+
+            let dots = match ((t * 2.0) as u32) % 4 {
+                0 => "",
+                1 => ".",
+                2 => "..",
+                _ => "...",
+            };
+            let hint = format!("Best played in landscape{}", dots);
+            let mh = measure_text(&hint, None, 14, 1.0);
+            draw_text(&hint, (screen_width() - mh.width) * 0.5, screen_height() * 0.75, 14.0, Color::new(1.0, 1.0, 1.0, 0.5));
+
             next_frame().await;
             continue;
         }
