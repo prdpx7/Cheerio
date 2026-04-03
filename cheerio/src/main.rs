@@ -54,6 +54,19 @@ async fn main() {
     loop {
         let dt = get_frame_time();
 
+        if screen_width() < screen_height() {
+            set_default_camera();
+            clear_background(Color::new(0.07, 0.07, 0.1, 1.0));
+            let arrow = "^";
+            let ma = measure_text(arrow, None, 60, 1.0);
+            draw_text(arrow, (screen_width() - ma.width) * 0.5, screen_height() * 0.4, 60.0, WHITE);
+            let msg = "Rotate to Landscape";
+            let mm = measure_text(msg, None, 24, 1.0);
+            draw_text(msg, (screen_width() - mm.width) * 0.5, screen_height() * 0.5, 24.0, WHITE);
+            next_frame().await;
+            continue;
+        }
+
         camera.begin_render();
         clear_background(SKYBLUE);
 
