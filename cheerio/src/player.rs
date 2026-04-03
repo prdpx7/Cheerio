@@ -22,6 +22,7 @@ pub struct Player {
     pub fireballs: Vec<Fireball>,
     pub jumped: bool,
     pub fired: bool,
+    pub ducking: bool,
     jump_buffer: f32,
     coyote_timer: f32,
 }
@@ -42,6 +43,7 @@ impl Player {
             fireballs: Vec::new(),
             jumped: false,
             fired: false,
+            ducking: false,
             jump_buffer: 0.0,
             coyote_timer: 0.0,
         }
@@ -53,6 +55,8 @@ impl Player {
             self.y += self.vy * dt;
             return;
         }
+
+        self.handle_touch_input();
 
         self.x += scroll_speed * dt;
 
@@ -77,6 +81,7 @@ impl Player {
             self.jumped = true;
             self.jump_buffer = 0.0;
             self.coyote_timer = 0.0;
+            self.ducking = false;
         }
 
         if !self.on_ground
@@ -84,6 +89,17 @@ impl Player {
             && self.vy < JUMP_CUT_VELOCITY
         {
             self.vy = JUMP_CUT_VELOCITY;
+        }
+
+        let duck_key = is_key_down(KeyCode::Down);
+        let duck_touch = touches().iter().any(|t| t.phase == TouchPhase::Stationary || t.phase == TouchPhase::Moved);
+
+        if self.on_ground && (duck_key || duck_touch) {
+            self.ducking = true;
+        } else if !self.on_ground && (duck_key || duck_touch) && self.vy > 0.0 {
+            self.vy += GRAVITY * 2.0 * dt;
+        } else {
+            self.ducking = false;
         }
 
         if self.power_state == PowerState::Fire
@@ -100,12 +116,14 @@ impl Player {
 
         self.y += self.vy * dt;
 
-        self.height = match self.power_state {
-            PowerState::Small => PLAYER_HEIGHT_SMALL,
-            PowerState::Super | PowerState::Fire => PLAYER_HEIGHT_SUPER,
-        };
-
-        self.handle_touch_input();
+        if self.ducking {
+            self.height = PLAYER_HEIGHT_SMALL * 0.65;
+        } else {
+            self.height = match self.power_state {
+                PowerState::Small => PLAYER_HEIGHT_SMALL,
+                PowerState::Super | PowerState::Fire => PLAYER_HEIGHT_SUPER,
+            };
+        }
     }
 
     pub fn rect(&self) -> Rect {
