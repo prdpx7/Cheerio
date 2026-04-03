@@ -61,23 +61,28 @@ impl AudioManager {
 
     pub async fn load_with_progress(&mut self) {
         let store: Arc<Mutex<Vec<Option<Sound>>>> = Arc::new(Mutex::new(vec![None; 9]));
+        let done: Arc<Mutex<Vec<bool>>> = Arc::new(Mutex::new(vec![false; 9]));
 
         for (i, path) in ASSET_PATHS.iter().enumerate() {
             let s = store.clone();
+            let d = done.clone();
             let p = path.to_string();
             macroquad::prelude::coroutines::start_coroutine(async move {
                 if let Ok(sound) = audio::load_sound(&p).await {
                     s.lock().unwrap()[i] = Some(sound);
                 }
+                d.lock().unwrap()[i] = true;
             });
         }
 
         let total = ASSET_PATHS.len();
+        let start = get_time();
         loop {
-            let loaded = store.lock().unwrap().iter().filter(|s| s.is_some()).count();
-            draw_loading_screen(loaded as f32 / total as f32);
+            let finished = done.lock().unwrap().iter().filter(|&&d| d).count();
+            let progress = finished as f32 / total as f32;
+            draw_loading_screen(progress);
             next_frame().await;
-            if loaded >= total {
+            if finished >= total || get_time() - start > 8.0 {
                 break;
             }
         }
