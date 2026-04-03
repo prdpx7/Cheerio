@@ -56,7 +56,31 @@ impl Player {
             return;
         }
 
-        self.handle_touch_input();
+        let mut want_jump = false;
+        let mut want_duck = false;
+        let mut want_fire = false;
+
+        want_jump |= is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::Up);
+        want_duck |= is_key_down(KeyCode::Down);
+        want_fire |= is_key_pressed(KeyCode::X)
+            || is_key_pressed(KeyCode::LeftShift)
+            || is_key_pressed(KeyCode::RightShift);
+
+        for touch in touches() {
+            match touch.phase {
+                TouchPhase::Started => {
+                    if touch.position.x > screen_width() * 0.5
+                        && self.power_state == PowerState::Fire
+                        && self.fireballs.len() < 2
+                    {
+                        want_fire = true;
+                    } else {
+                        want_jump = true;
+                    }
+                }
+                _ => {}
+            }
+        }
 
         self.x += scroll_speed * dt;
 
@@ -65,13 +89,13 @@ impl Player {
         }
 
         if self.on_ground {
-            self.coyote_timer = 0.08;
+            self.coyote_timer = 0.1;
         } else {
             self.coyote_timer -= dt;
         }
 
-        if is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::Up) {
-            self.jump_buffer = 0.12;
+        if want_jump {
+            self.jump_buffer = 0.15;
         }
         self.jump_buffer -= dt;
 
@@ -91,23 +115,20 @@ impl Player {
             self.vy = JUMP_CUT_VELOCITY;
         }
 
-        let duck_key = is_key_down(KeyCode::Down);
-        let duck_touch = touches().iter().any(|t| t.phase == TouchPhase::Stationary || t.phase == TouchPhase::Moved);
+        if want_fire && self.power_state == PowerState::Fire && self.fireballs.len() < 2 {
+            self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
+            self.fired = true;
+        }
 
-        if self.on_ground && (duck_key || duck_touch) {
+        let prev_height = self.height;
+        if want_duck && self.on_ground {
             self.ducking = true;
-        } else if !self.on_ground && (duck_key || duck_touch) && self.vy > 0.0 {
-            self.vy += GRAVITY * 2.0 * dt;
         } else {
             self.ducking = false;
         }
 
-        if self.power_state == PowerState::Fire
-            && (is_key_pressed(KeyCode::X) || is_key_pressed(KeyCode::LeftShift) || is_key_pressed(KeyCode::RightShift))
-            && self.fireballs.len() < 2
-        {
-            self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
-            self.fired = true;
+        if !self.on_ground && want_duck && self.vy > 0.0 {
+            self.vy += GRAVITY * 1.5 * dt;
         }
 
         if !self.on_ground {
@@ -116,14 +137,19 @@ impl Player {
 
         self.y += self.vy * dt;
 
-        if self.ducking {
-            self.height = PLAYER_HEIGHT_SMALL * 0.65;
+        let new_height = if self.ducking {
+            PLAYER_HEIGHT_SMALL * 0.6
         } else {
-            self.height = match self.power_state {
+            match self.power_state {
                 PowerState::Small => PLAYER_HEIGHT_SMALL,
                 PowerState::Super | PowerState::Fire => PLAYER_HEIGHT_SUPER,
-            };
+            }
+        };
+
+        if self.on_ground && new_height != prev_height {
+            self.y += prev_height - new_height;
         }
+        self.height = new_height;
     }
 
     pub fn rect(&self) -> Rect {
@@ -184,6 +210,17 @@ impl Player {
         let x = self.x;
         let y = self.y;
 
+        if self.ducking {
+            let h = self.height;
+            draw_rectangle(x + 2.0, y, 10.0, 3.0, hat_color);
+            draw_rectangle(x + 2.0, y + 3.0, 10.0, 3.0, skin);
+            draw_rectangle(x + 4.0, y + 4.0, 2.0, 1.0, BLACK);
+            draw_rectangle(x + 8.0, y + 4.0, 2.0, 1.0, BLACK);
+            draw_rectangle(x + 1.0, y + 6.0, 12.0, h - 8.0, overalls_color);
+            draw_rectangle(x + 1.0, y + h - 2.0, 12.0, 2.0, shoe);
+            return;
+        }
+
         match self.power_state {
             PowerState::Small => {
                 draw_rectangle(x + 2.0, y, 10.0, 4.0, hat_color);
@@ -239,22 +276,6 @@ impl Player {
                     self.y = plat.y - self.height;
                     self.vy = 0.0;
                     self.on_ground = true;
-                }
-            }
-        }
-    }
-
-    pub fn handle_touch_input(&mut self) {
-        for touch in touches() {
-            if touch.phase == TouchPhase::Started {
-                if touch.position.x > screen_width() * 0.5
-                    && self.power_state == PowerState::Fire
-                    && self.fireballs.len() < 2
-                {
-                    self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
-                    self.fired = true;
-                } else {
-                    self.jump_buffer = 0.12;
                 }
             }
         }

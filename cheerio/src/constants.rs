@@ -1,9 +1,9 @@
 pub const INTERNAL_WIDTH: f32 = 480.0;
 pub const INTERNAL_HEIGHT: f32 = 270.0;
 
-pub const GRAVITY: f32 = 1400.0;
-pub const JUMP_VELOCITY: f32 = -480.0;
-pub const JUMP_CUT_VELOCITY: f32 = -180.0;
+pub const GRAVITY: f32 = 1200.0;
+pub const JUMP_VELOCITY: f32 = -460.0;
+pub const JUMP_CUT_VELOCITY: f32 = -220.0;
 pub const PLAYER_SPEED: f32 = 120.0;
 
 pub const TILE_SIZE: f32 = 16.0;
