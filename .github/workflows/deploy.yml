@@ -51,6 +51,11 @@ jobs:
           <body>
               <canvas id="glcanvas" tabindex="1"></canvas>
               <script src="mq_js_bundle.js"></script>
+              <script>
+              var _mqAudioCtxList=[];var _AC=window.AudioContext||window.webkitAudioContext;if(_AC){var _O=_AC;window.AudioContext=function(){var c=new _O();_mqAudioCtxList.push(c);return c};window.AudioContext.prototype=_O.prototype;if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext}
+              ["touchstart","click","keydown"].forEach(function(e){document.addEventListener(e,function(){_mqAudioCtxList.forEach(function(c){if(c.state==="suspended")c.resume()})})});
+              </script>
+              <script src="mq_js_bundle.js"></script>
               <script>load("cheerio.wasm");</script>
           </body>
           </html>
