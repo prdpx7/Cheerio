@@ -1,6 +1,6 @@
 use macroquad::audio::{self, Sound, PlaySoundParams};
 use macroquad::prelude::*;
-use crate::constants::*;
+use std::sync::{Arc, Mutex};
 
 pub struct AudioManager {
     pub jump: Option<Sound>,
@@ -60,29 +60,38 @@ impl AudioManager {
     }
 
     pub async fn load_with_progress(&mut self) {
-        let total = ASSET_PATHS.len();
+        let store: Arc<Mutex<Vec<Option<Sound>>>> = Arc::new(Mutex::new(vec![None; 9]));
 
         for (i, path) in ASSET_PATHS.iter().enumerate() {
-            draw_loading_screen(i as f32 / total as f32);
-            next_frame().await;
+            let s = store.clone();
+            let p = path.to_string();
+            macroquad::prelude::coroutines::start_coroutine(async move {
+                if let Ok(sound) = audio::load_sound(&p).await {
+                    s.lock().unwrap()[i] = Some(sound);
+                }
+            });
+        }
 
-            let sound = audio::load_sound(path).await.ok();
-            match i {
-                0 => self.jump = sound,
-                1 => self.coin = sound,
-                2 => self.stomp = sound,
-                3 => self.powerup = sound,
-                4 => self.fireball = sound,
-                5 => self.death = sound,
-                6 => self.oneup = sound,
-                7 => self.bump = sound,
-                8 => self.bgm = sound,
-                _ => {}
+        let total = ASSET_PATHS.len();
+        loop {
+            let loaded = store.lock().unwrap().iter().filter(|s| s.is_some()).count();
+            draw_loading_screen(loaded as f32 / total as f32);
+            next_frame().await;
+            if loaded >= total {
+                break;
             }
         }
 
-        draw_loading_screen(1.0);
-        next_frame().await;
+        let mut sounds = store.lock().unwrap();
+        self.jump = sounds[0].take();
+        self.coin = sounds[1].take();
+        self.stomp = sounds[2].take();
+        self.powerup = sounds[3].take();
+        self.fireball = sounds[4].take();
+        self.death = sounds[5].take();
+        self.oneup = sounds[6].take();
+        self.bump = sounds[7].take();
+        self.bgm = sounds[8].take();
     }
 
     pub fn play_sfx(&self, sfx: Sfx) {
