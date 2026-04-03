@@ -229,11 +229,14 @@ impl Player {
     pub fn handle_touch_input(&mut self) {
         for touch in touches() {
             if touch.phase == TouchPhase::Started {
-                if touch.position.x < screen_width() * 0.5 {
-                    self.jump_buffer = 0.12;
-                } else if self.power_state == PowerState::Fire && self.fireballs.len() < 2 {
+                if touch.position.x > screen_width() * 0.5
+                    && self.power_state == PowerState::Fire
+                    && self.fireballs.len() < 2
+                {
                     self.fireballs.push(Fireball::new(self.x + self.width, self.y + self.height * 0.5));
                     self.fired = true;
+                } else {
+                    self.jump_buffer = 0.12;
                 }
             }
         }
