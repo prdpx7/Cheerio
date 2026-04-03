@@ -1,6 +1,5 @@
 use macroquad::audio::{self, Sound, PlaySoundParams};
 use macroquad::prelude::*;
-use std::sync::{Arc, Mutex};
 
 pub struct AudioManager {
     pub jump: Option<Sound>,
@@ -60,34 +59,20 @@ impl AudioManager {
     }
 
     pub async fn load_with_progress(&mut self) {
-        let store: Arc<Mutex<Vec<Option<Sound>>>> = Arc::new(Mutex::new(vec![None; 9]));
-        let done: Arc<Mutex<Vec<bool>>> = Arc::new(Mutex::new(vec![false; 9]));
+        let paths = ASSET_PATHS;
+        let total = paths.len();
+        let mut sounds: Vec<Option<Sound>> = Vec::new();
 
-        for (i, path) in ASSET_PATHS.iter().enumerate() {
-            let s = store.clone();
-            let d = done.clone();
-            let p = path.to_string();
-            macroquad::prelude::coroutines::start_coroutine(async move {
-                if let Ok(sound) = audio::load_sound(&p).await {
-                    s.lock().unwrap()[i] = Some(sound);
-                }
-                d.lock().unwrap()[i] = true;
-            });
-        }
-
-        let total = ASSET_PATHS.len();
-        let start = get_time();
-        loop {
-            let finished = done.lock().unwrap().iter().filter(|&&d| d).count();
-            let progress = finished as f32 / total as f32;
-            draw_loading_screen(progress);
+        for (i, path) in paths.iter().enumerate() {
+            draw_loading_screen(i as f32 / total as f32);
             next_frame().await;
-            if finished >= total || get_time() - start > 8.0 {
-                break;
-            }
+            let sound = audio::load_sound(path).await.ok();
+            sounds.push(sound);
         }
 
-        let mut sounds = store.lock().unwrap();
+        draw_loading_screen(1.0);
+        next_frame().await;
+
         self.jump = sounds[0].take();
         self.coin = sounds[1].take();
         self.stomp = sounds[2].take();
