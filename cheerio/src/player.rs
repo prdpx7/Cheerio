@@ -67,18 +67,27 @@ impl Player {
             || is_key_pressed(KeyCode::RightShift);
 
         for touch in touches() {
-            match touch.phase {
-                TouchPhase::Started => {
-                    if touch.position.x > screen_width() * 0.5
-                        && self.power_state == PowerState::Fire
-                        && self.fireballs.len() < 2
-                    {
-                        want_fire = true;
-                    } else {
-                        want_jump = true;
-                    }
+            if touch.phase == TouchPhase::Started {
+                if touch.position.x > screen_width() * 0.5
+                    && self.power_state == PowerState::Fire
+                    && self.fireballs.len() < 2
+                {
+                    want_fire = true;
+                } else {
+                    want_jump = true;
                 }
-                _ => {}
+            }
+        }
+
+        if is_mouse_button_pressed(MouseButton::Left) {
+            let (mx, _) = mouse_position();
+            if mx > screen_width() * 0.5
+                && self.power_state == PowerState::Fire
+                && self.fireballs.len() < 2
+            {
+                want_fire = true;
+            } else {
+                want_jump = true;
             }
         }
 
