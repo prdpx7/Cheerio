@@ -25,6 +25,10 @@ pub fn draw_title_screen(high_score: u32, camera_x: f32) -> bool {
     let hi = format!("HI-SCORE: {}", high_score);
     draw_text(&hi, center_x(&hi, 16.0, camera_x), 30.0, 16.0, GOLD);
 
+    let ver = concat!("v", env!("CARGO_PKG_VERSION"));
+    let mv = measure_text(ver, None, 12, 1.0);
+    draw_text(ver, camera_x + INTERNAL_WIDTH - mv.width - 4.0, INTERNAL_HEIGHT - 4.0, 12.0, Color::new(1.0, 1.0, 1.0, 0.4));
+
     let tapped = touches().iter().any(|t| t.phase == TouchPhase::Started);
     is_key_pressed(KeyCode::Space) || tapped || is_mouse_button_pressed(MouseButton::Left)
 }
