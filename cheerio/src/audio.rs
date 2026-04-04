@@ -64,14 +64,19 @@ impl AudioManager {
         let mut sounds: Vec<Option<Sound>> = Vec::new();
 
         for (i, path) in paths.iter().enumerate() {
-            draw_loading_screen(i as f32 / total as f32);
+            let progress = i as f32 / total as f32;
+            draw_loading_screen(progress);
             next_frame().await;
             let sound = audio::load_sound(path).await.ok();
             sounds.push(sound);
+            draw_loading_screen((i + 1) as f32 / total as f32);
+            next_frame().await;
         }
 
-        draw_loading_screen(1.0);
-        next_frame().await;
+        for _ in 0..3 {
+            draw_loading_screen(1.0);
+            next_frame().await;
+        }
 
         self.jump = sounds[0].take();
         self.coin = sounds[1].take();
