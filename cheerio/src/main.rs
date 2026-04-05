@@ -278,7 +278,6 @@ async fn main() {
                         audio.play_sfx(Sfx::Stomp);
                     }
 
-                    // Shell knocks over other enemies
                     let shell_rects: Vec<Rect> = world.as_ref().unwrap()
                         .chunks.iter()
                         .flat_map(|c| c.enemies.iter())
@@ -286,15 +285,29 @@ async fn main() {
                         .map(|e| e.rect())
                         .collect();
 
+                    let mut killing_shell_rects: Vec<Rect> = Vec::new();
                     let mut shell_kills = 0u32;
                     for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
                         if !enemy.alive || enemy.kind == EnemyKind::Shell { continue; }
-                        for shell_rect in &shell_rects {
-                            if enemy.rect().overlaps(shell_rect) {
+                        for &shell_rect in &shell_rects {
+                            if enemy.rect().overlaps(&shell_rect) {
                                 enemy.alive = false;
-                                enemy.death_timer = 0.3;
+                                enemy.death_timer = 0.5;
+                                enemy.death_vy = -150.0;
+                                killing_shell_rects.push(shell_rect);
                                 shell_kills += 1;
                                 break;
+                            }
+                        }
+                    }
+                    if !killing_shell_rects.is_empty() {
+                        for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
+                            if enemy.kind != EnemyKind::Shell || !enemy.alive { continue; }
+                            let er = enemy.rect();
+                            if killing_shell_rects.iter().any(|kr| (er.x - kr.x).abs() < 2.0 && (er.y - kr.y).abs() < 2.0) {
+                                enemy.alive = false;
+                                enemy.death_timer = 0.3;
+                                enemy.death_vy = -80.0;
                             }
                         }
                     }
@@ -327,7 +340,7 @@ async fn main() {
                     let mut coins_collected = 0u32;
                     let mut powerups_collected = 0u32;
                     for c in world.as_mut().unwrap().get_all_collectibles_mut() {
-                        c.update(dt, &ground_rects_for_collect);
+                        c.update(dt, &ground_rects_for_collect, scroll_speed);
                         if !c.collected && c.active && p.rect().overlaps(&c.rect()) {
                             c.collected = true;
                             match c.kind {

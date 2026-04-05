@@ -141,20 +141,15 @@ pub fn draw_game_over_screen(score: &ScoreManager, camera_x: f32, timer: f32) ->
         return GameOverAction::None;
     }
 
-    let tapped = touches().iter().any(|t| t.phase == TouchPhase::Started);
     let mouse_down = is_mouse_button_pressed(MouseButton::Left);
 
-    let (mx, my) = mouse_position();
-    let mouse_in_canvas = Rect::new(camera_x, 0.0, INTERNAL_WIDTH, INTERNAL_HEIGHT);
+    let (mx_screen, my_screen) = mouse_position();
+    let scale_x = INTERNAL_WIDTH / screen_width();
+    let scale_y = INTERNAL_HEIGHT / screen_height();
+    let mp = vec2(camera_x + mx_screen * scale_x, my_screen * scale_y);
 
-    if mouse_down && mouse_in_canvas.contains(vec2(mx, my)) {
-        let mp = vec2(mx, my);
-        if twitter_rect.contains(mp) {
-            return GameOverAction::ShareTwitter;
-        }
-        if whatsapp_rect.contains(mp) {
-            return GameOverAction::ShareWhatsApp;
-        }
+    if is_key_pressed(KeyCode::Space) {
+        return GameOverAction::Restart;
     }
 
     for touch in touches() {
@@ -163,23 +158,23 @@ pub fn draw_game_over_screen(score: &ScoreManager, camera_x: f32, timer: f32) ->
             let scale_x = INTERNAL_WIDTH / screen_width();
             let scale_y = INTERNAL_HEIGHT / screen_height();
             let tp_game = vec2(camera_x + tp.x * scale_x, tp.y * scale_y);
-
             if twitter_rect.contains(tp_game) {
                 return GameOverAction::ShareTwitter;
             }
             if whatsapp_rect.contains(tp_game) {
                 return GameOverAction::ShareWhatsApp;
             }
+            return GameOverAction::Restart;
         }
     }
 
-    if is_key_pressed(KeyCode::Space) {
-        return GameOverAction::Restart;
-    }
     if mouse_down {
-        return GameOverAction::Restart;
-    }
-    if tapped {
+        if twitter_rect.contains(mp) {
+            return GameOverAction::ShareTwitter;
+        }
+        if whatsapp_rect.contains(mp) {
+            return GameOverAction::ShareWhatsApp;
+        }
         return GameOverAction::Restart;
     }
 

@@ -34,3 +34,4 @@ pub const ENEMY_KOOPA_SPEED: f32 = 35.0;
 pub const SHELL_SPEED: f32 = 200.0;
 
 pub const STOMP_BOUNCE_VELOCITY: f32 = -200.0;
+pub const FAST_FALL_SPEED: f32 = 550.0;

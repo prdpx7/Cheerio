@@ -36,7 +36,7 @@ impl Collectible {
         self.vy = -200.0;
     }
 
-    pub fn update(&mut self, dt: f32, ground_rects: &[Rect]) {
+    pub fn update(&mut self, dt: f32, ground_rects: &[Rect], scroll_speed: f32) {
         if self.collected || !self.active {
             return;
         }
@@ -48,7 +48,7 @@ impl Collectible {
             CollectibleKind::Mushroom | CollectibleKind::Star => {
                 self.vy += GRAVITY * 0.5 * dt;
                 self.y += self.vy * dt;
-                self.x += 30.0 * dt;
+                self.x += scroll_speed * dt;
 
                 let r = self.rect();
                 for g in ground_rects {

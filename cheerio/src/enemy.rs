@@ -23,6 +23,7 @@ pub struct Enemy {
     pub alive: bool,
     pub on_ground: bool,
     pub death_timer: f32,
+    pub death_vy: f32,
 }
 
 impl Enemy {
@@ -46,12 +47,17 @@ impl Enemy {
             alive: true,
             on_ground: false,
             death_timer: 0.0,
+            death_vy: 0.0,
         }
     }
 
     pub fn update(&mut self, dt: f32, ground_rects: &[Rect]) {
         if !self.alive {
-            self.death_timer -= dt;
+            if self.death_timer > 0.0 {
+                self.death_timer -= dt;
+                self.death_vy += GRAVITY * dt;
+                self.y += self.death_vy * dt;
+            }
             return;
         }
 
@@ -89,6 +95,7 @@ impl Enemy {
             EnemyKind::Goomba | EnemyKind::BuzzyBeetle => {
                 self.alive = false;
                 self.death_timer = 0.3;
+                self.death_vy = 0.0;
                 None
             }
             EnemyKind::Koopa | EnemyKind::Paratroopa => {
@@ -101,6 +108,7 @@ impl Enemy {
             EnemyKind::BulletBill => {
                 self.alive = false;
                 self.death_timer = 0.3;
+                self.death_vy = -100.0;
                 None
             }
             EnemyKind::Shell => {
@@ -119,6 +127,18 @@ impl Enemy {
         let y = self.y;
         let w = self.width;
         let h = self.height;
+
+        if !self.alive {
+            if self.kind == EnemyKind::Goomba {
+                draw_rectangle(x + 1.0, y + h - 6.0, w - 2.0, 6.0, Color::new(0.55, 0.27, 0.07, 1.0));
+                draw_rectangle(x + 3.0, y + h - 4.0, w - 6.0, 2.0, Color::new(0.9, 0.8, 0.6, 1.0));
+                return;
+            }
+            if self.kind == EnemyKind::BuzzyBeetle {
+                draw_circle(x + w * 0.5, y + h * 0.5, w * 0.4, Color::new(0.1, 0.1, 0.4, 1.0));
+                return;
+            }
+        }
 
         match self.kind {
             EnemyKind::Goomba => {
