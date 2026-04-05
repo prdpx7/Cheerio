@@ -27,6 +27,27 @@
         var url = new TextDecoder().decode(arr);
         window.open(url, '_blank', 'noopener,noreferrer');
     };
+    importObject.env.cheerio_share_screenshot = function(score, platform) {
+        var twitterUrl = 'https://twitter.com/intent/tweet?text=I+scored+' + score + '+in+Cheerio%21+Can+you+beat+me%3F&url=https%3A%2F%2Fprdpx7.github.io%2FCheerio%2F';
+        var whatsappUrl = 'https://wa.me/?text=I+scored+' + score + '+in+Cheerio%21+Play+at+https%3A%2F%2Fprdpx7.github.io%2FCheerio%2F';
+        var fallbackUrl = platform === 1 ? twitterUrl : whatsappUrl;
+        var shareText = 'I scored ' + score + ' in Cheerio! Can you beat me? https://prdpx7.github.io/Cheerio/';
+        var canvas = document.getElementById('glcanvas');
+        if (navigator.canShare && canvas) {
+            canvas.toBlob(function(blob) {
+                if (!blob) { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); return; }
+                var file = new File([blob], 'cheerio-score.png', { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    navigator.share({ files: [file], title: 'Cheerio', text: shareText })
+                        .catch(function() { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); });
+                } else {
+                    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                }
+            }, 'image/png');
+        } else {
+            window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+        }
+    };
     load("cheerio.wasm");
     </script>
 </body>

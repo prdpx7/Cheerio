@@ -27,6 +27,7 @@ use screens::GameOverAction;
 mod wasm_js {
     extern "C" {
         pub fn cheerio_open_url(ptr: *const u8, len: usize);
+        pub fn cheerio_share_screenshot(score: u32, platform: u32);
     }
 }
 
@@ -39,18 +40,13 @@ fn open_url(url: &str) {
     let _ = url;
 }
 
-fn share_url_twitter(score: u32) -> String {
-    format!(
-        "https://twitter.com/intent/tweet?text=I+scored+{}+in+Cheerio%21+Can+you+beat+me%3F&url=https%3A%2F%2Fprdpx7.github.io%2FCheerio%2F",
-        score
-    )
-}
-
-fn share_url_whatsapp(score: u32) -> String {
-    format!(
-        "https://wa.me/?text=I+scored+{}+in+Cheerio%21+Play+at+https%3A%2F%2Fprdpx7.github.io%2FCheerio%2F",
-        score
-    )
+fn share_screenshot(score: u32, platform: u32) {
+    #[cfg(target_arch = "wasm32")]
+    unsafe {
+        wasm_js::cheerio_share_screenshot(score, platform);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = (score, platform);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -505,14 +501,14 @@ async fn main() {
                     GameOverAction::ShareTwitter => {
                         if get_time() - last_share_time > 1.0 {
                             let s = score.as_ref().unwrap().score;
-                            open_url(&share_url_twitter(s));
+                            share_screenshot(s, 1);
                             last_share_time = get_time();
                         }
                     }
                     GameOverAction::ShareWhatsApp => {
                         if get_time() - last_share_time > 1.0 {
                             let s = score.as_ref().unwrap().score;
-                            open_url(&share_url_whatsapp(s));
+                            share_screenshot(s, 2);
                             last_share_time = get_time();
                         }
                     }
