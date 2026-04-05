@@ -44,8 +44,8 @@ jobs:
               <link rel="icon" type="image/png" href="assets/favicon.png">
               <style>
                   * { margin: 0; padding: 0; }
-                  html, body { width: 100%; height: 100%; overflow: hidden; background: #4AB7FF; touch-action: none; }
-                  canvas { display: block; width: 100%; height: 100%; }
+                  html, body { width: 100%; height: 100%; overflow: hidden; background: #4AB8FF; touch-action: none; }
+                  canvas { display: block; width: 100%; height: 100%; background: #4AB8FF; }
               </style>
           </head>
           <body>
@@ -57,7 +57,14 @@ jobs:
               ["smb_jump-small.wav","smb_coin.wav","smb_stomp.wav","smb_powerup.wav","smb_fireball.wav","smb_mariodie.wav","smb_1-up.wav","smb_bump.wav","bgm_main.ogg"].forEach(function(f){fetch("assets/audio/"+f)});
               </script>
               <script src="mq_js_bundle.js"></script>
-              <script>load("cheerio.wasm");</script>
+              <script>
+              importObject.env.cheerio_open_url = function(ptr, len) {
+                  var arr = new Uint8Array(wasm_memory.buffer, ptr, len);
+                  var url = new TextDecoder().decode(arr);
+                  window.open(url, '_blank', 'noopener,noreferrer');
+              };
+              load("cheerio.wasm");
+              </script>
           </body>
           </html>
           HTMLEOF

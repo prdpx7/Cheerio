@@ -16,17 +16,49 @@ use constants::*;
 use camera::GameCamera;
 use player::{Player, PowerState};
 use world::World;
-use enemy::Enemy;
+use enemy::{Enemy, EnemyKind};
 use collision::is_stomp;
 use score::ScoreManager;
 use zone::ZoneManager;
 use audio::{AudioManager, Sfx};
+use screens::GameOverAction;
+
+#[cfg(target_arch = "wasm32")]
+mod wasm_js {
+    extern "C" {
+        pub fn cheerio_open_url(ptr: *const u8, len: usize);
+    }
+}
+
+fn open_url(url: &str) {
+    #[cfg(target_arch = "wasm32")]
+    unsafe {
+        wasm_js::cheerio_open_url(url.as_ptr(), url.len());
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = url;
+}
+
+fn share_url_twitter(score: u32) -> String {
+    format!(
+        "https://twitter.com/intent/tweet?text=I+scored+{}+in+Cheerio%21+Can+you+beat+me%3F&url=https%3A%2F%2Fprdpx7.github.io%2FCheerio%2F",
+        score
+    )
+}
+
+fn share_url_whatsapp(score: u32) -> String {
+    format!(
+        "https://wa.me/?text=I+scored+{}+in+Cheerio%21+Play+at+https%3A%2F%2Fprdpx7.github.io%2FCheerio%2F",
+        score
+    )
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum GameState {
     Title,
     Playing,
     Paused,
+    DyingAnimation,
     GameOver,
 }
 
@@ -50,6 +82,10 @@ async fn main() {
     let mut zone_manager: Option<ZoneManager> = None;
     let mut audio = AudioManager::new();
     audio.load_with_progress().await;
+
+    let mut dying_timer: f32 = 0.0;
+    let mut game_over_timer: f32 = 0.0;
+    let mut frozen_zone = zone::ZoneType::Grassland;
 
     loop {
         let dt = get_frame_time();
@@ -156,7 +192,6 @@ async fn main() {
         }
 
         camera.begin_render();
-        clear_background(SKYBLUE);
 
         match state {
             GameState::Title => {
@@ -224,7 +259,9 @@ async fn main() {
                                     p.take_damage();
                                     if p.is_dead {
                                         audio.play_sfx(Sfx::Death);
-                                        state = GameState::GameOver;
+                                        frozen_zone = current_zone;
+                                        dying_timer = 0.0;
+                                        state = GameState::DyingAnimation;
                                         score.as_mut().unwrap().finalize();
                                     }
                                 }
@@ -241,6 +278,32 @@ async fn main() {
                         audio.play_sfx(Sfx::Stomp);
                     }
 
+                    // Shell knocks over other enemies
+                    let shell_rects: Vec<Rect> = world.as_ref().unwrap()
+                        .chunks.iter()
+                        .flat_map(|c| c.enemies.iter())
+                        .filter(|e| e.alive && e.kind == EnemyKind::Shell)
+                        .map(|e| e.rect())
+                        .collect();
+
+                    let mut shell_kills = 0u32;
+                    for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
+                        if !enemy.alive || enemy.kind == EnemyKind::Shell { continue; }
+                        for shell_rect in &shell_rects {
+                            if enemy.rect().overlaps(shell_rect) {
+                                enemy.alive = false;
+                                enemy.death_timer = 0.3;
+                                shell_kills += 1;
+                                break;
+                            }
+                        }
+                    }
+                    for _ in 0..shell_kills {
+                        p.stomp_chain += 1;
+                        score.as_mut().unwrap().add_stomp(p.stomp_chain as usize - 1);
+                        audio.play_sfx(Sfx::Stomp);
+                    }
+
                     let ground_rects_for_fb = world.as_ref().unwrap().get_ground_rects();
                     for fb in &mut p.fireballs {
                         fb.update(dt, &ground_rects_for_fb);
@@ -249,7 +312,7 @@ async fn main() {
                         if !fb.alive { continue; }
                         for enemy in world.as_mut().unwrap().get_all_enemies_mut() {
                             if enemy.alive && fb.rect().overlaps(&enemy.rect()) {
-                                if enemy.kind != crate::enemy::EnemyKind::BuzzyBeetle {
+                                if enemy.kind != EnemyKind::BuzzyBeetle {
                                     enemy.alive = false;
                                     enemy.death_timer = 0.3;
                                 }
@@ -329,7 +392,9 @@ async fn main() {
                             p.take_damage();
                             if p.is_dead {
                                 audio.play_sfx(Sfx::Death);
-                                state = GameState::GameOver;
+                                frozen_zone = current_zone;
+                                dying_timer = 0.0;
+                                state = GameState::DyingAnimation;
                                 score.as_mut().unwrap().finalize();
                             }
                         }
@@ -341,7 +406,9 @@ async fn main() {
                             p.take_damage();
                             if p.is_dead {
                                 audio.play_sfx(Sfx::Death);
-                                state = GameState::GameOver;
+                                frozen_zone = current_zone;
+                                dying_timer = 0.0;
+                                state = GameState::DyingAnimation;
                                 score.as_mut().unwrap().finalize();
                             }
                         }
@@ -356,7 +423,9 @@ async fn main() {
 
                     if p.y > INTERNAL_HEIGHT + 50.0 {
                         audio.play_sfx(Sfx::Death);
-                        state = GameState::GameOver;
+                        frozen_zone = current_zone;
+                        dying_timer = 0.0;
+                        state = GameState::DyingAnimation;
                         score.as_mut().unwrap().finalize();
                     }
                 }
@@ -381,15 +450,53 @@ async fn main() {
                     state = GameState::Playing;
                 }
             }
+            GameState::DyingAnimation => {
+                dying_timer += dt;
+
+                clear_background(frozen_zone.bg_color());
+                renderer::draw_parallax_background(frozen_zone, camera.scroll_x);
+                world.as_ref().unwrap().draw();
+
+                if let Some(ref mut p) = player {
+                    p.update(dt, 0.0);
+                    p.draw();
+                }
+
+                let vignette_alpha = (dying_timer / 1.5).min(0.7);
+                draw_rectangle(camera.scroll_x, 0.0, INTERNAL_WIDTH, INTERNAL_HEIGHT, Color::new(0.0, 0.0, 0.0, vignette_alpha));
+
+                let player_fell = player.as_ref().map(|p| p.y > INTERNAL_HEIGHT + 60.0).unwrap_or(true);
+                if dying_timer > 2.0 || player_fell {
+                    audio.stop_bgm();
+                    game_over_timer = 0.0;
+                    state = GameState::GameOver;
+                }
+            }
             GameState::GameOver => {
-                audio.stop_bgm();
-                if screens::draw_game_over_screen(score.as_ref().unwrap(), camera.scroll_x) {
-                    state = GameState::Title;
-                    camera = GameCamera::new();
-                    player = None;
-                    world = None;
-                    score = None;
-                    zone_manager = None;
+                game_over_timer += dt;
+
+                clear_background(frozen_zone.bg_color());
+                renderer::draw_parallax_background(frozen_zone, camera.scroll_x);
+                world.as_ref().unwrap().draw();
+
+                match screens::draw_game_over_screen(score.as_ref().unwrap(), camera.scroll_x, game_over_timer) {
+                    GameOverAction::Restart => {
+                        state = GameState::Title;
+                        camera = GameCamera::new();
+                        player = None;
+                        world = None;
+                        score = None;
+                        zone_manager = None;
+                    }
+                    GameOverAction::ShareTwitter => {
+                        let s = score.as_ref().unwrap().score;
+                        open_url(&share_url_twitter(s));
+                    }
+                    GameOverAction::ShareWhatsApp => {
+                        let s = score.as_ref().unwrap().score;
+                        open_url(&share_url_whatsapp(s));
+                    }
+                    GameOverAction::None => {}
                 }
             }
         }

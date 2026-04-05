@@ -25,6 +25,7 @@ pub struct Player {
     pub ducking: bool,
     jump_buffer: f32,
     coyote_timer: f32,
+    last_tap_time: f64,
 }
 
 impl Player {
@@ -46,6 +47,7 @@ impl Player {
             ducking: false,
             jump_buffer: 0.0,
             coyote_timer: 0.0,
+            last_tap_time: -1.0,
         }
     }
 
@@ -68,6 +70,10 @@ impl Player {
 
         for touch in touches() {
             if touch.phase == TouchPhase::Started {
+                let now = get_time();
+                let is_double_tap = now - self.last_tap_time < 0.35;
+                self.last_tap_time = now;
+
                 if touch.position.x > screen_width() * 0.5
                     && self.power_state == PowerState::Fire
                     && self.fireballs.len() < 2
@@ -75,6 +81,9 @@ impl Player {
                     want_fire = true;
                 } else {
                     want_jump = true;
+                    if is_double_tap {
+                        want_duck = true;
+                    }
                 }
             }
         }

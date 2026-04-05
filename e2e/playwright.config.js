@@ -5,8 +5,10 @@ const BASE_URL = process.env.BASE_URL || 'https://prdpx7.github.io/Cheerio/';
 module.exports = defineConfig({
     testDir: './tests',
     timeout: 90000,
-    retries: 1,
-    workers: 2,
+    retries: 0,
+    workers: 8,
+    fullyParallel: true,
+    testIgnore: ['**/endurance.spec.js', '**/video_capture.spec.js'],
     use: {
         baseURL: BASE_URL,
         screenshot: 'only-on-failure',

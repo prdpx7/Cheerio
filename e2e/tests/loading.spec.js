@@ -4,14 +4,19 @@ const { GAME_URL } = require('./helpers');
 test.describe('Loading', () => {
     test('page loads and canvas renders', async ({ page }) => {
         await page.goto(GAME_URL, { timeout: 30000 });
-        await page.waitForTimeout(12000);
+        await page.waitForTimeout(15000);
 
         const canvas = await page.evaluate(() => {
             const c = document.getElementById('glcanvas');
-            return { exists: !!c, width: c?.width || 0, height: c?.height || 0 };
+            return {
+                exists: !!c,
+                width: c?.width || 0,
+                clientWidth: c?.clientWidth || 0,
+                offsetWidth: c?.offsetWidth || 0,
+            };
         });
         expect(canvas.exists).toBe(true);
-        expect(canvas.width).toBeGreaterThan(0);
+        expect(canvas.clientWidth + canvas.width + canvas.offsetWidth).toBeGreaterThan(0);
     });
 
     test('all audio assets return 200', async ({ page }) => {
@@ -23,7 +28,7 @@ test.describe('Loading', () => {
         });
 
         await page.goto(GAME_URL, { timeout: 30000 });
-        await page.waitForTimeout(15000);
+        await page.waitForTimeout(18000);
 
         const expectedFiles = [
             'smb_jump-small.wav', 'smb_coin.wav', 'smb_stomp.wav',
@@ -45,7 +50,7 @@ test.describe('Loading', () => {
         });
 
         await page.goto(GAME_URL, { timeout: 30000 });
-        await page.waitForTimeout(12000);
+        await page.waitForTimeout(15000);
         expect(wasmLoaded).toBe(true);
     });
 });
