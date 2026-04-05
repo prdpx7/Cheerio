@@ -145,12 +145,12 @@ impl Player {
             self.ducking = false;
         }
 
-        if !self.on_ground && want_duck && self.vy < FAST_FALL_SPEED {
-            self.vy = FAST_FALL_SPEED;
-        }
-
         if !self.on_ground {
-            self.vy += GRAVITY * dt;
+            let gravity_mult = if want_duck { 3.0 } else { 1.0 };
+            self.vy += GRAVITY * gravity_mult * dt;
+            if self.vy > 700.0 {
+                self.vy = 700.0;
+            }
         }
 
         self.y += self.vy * dt;

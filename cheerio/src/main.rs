@@ -86,6 +86,7 @@ async fn main() {
     let mut dying_timer: f32 = 0.0;
     let mut game_over_timer: f32 = 0.0;
     let mut frozen_zone = zone::ZoneType::Grassland;
+    let mut last_share_time: f64 = -10.0;
 
     loop {
         let dt = get_frame_time();
@@ -281,7 +282,7 @@ async fn main() {
                     let shell_rects: Vec<Rect> = world.as_ref().unwrap()
                         .chunks.iter()
                         .flat_map(|c| c.enemies.iter())
-                        .filter(|e| e.alive && e.kind == EnemyKind::Shell)
+                        .filter(|e| e.alive && e.kind == EnemyKind::Shell && e.spawn_timer <= 0.0)
                         .map(|e| e.rect())
                         .collect();
 
@@ -502,12 +503,18 @@ async fn main() {
                         zone_manager = None;
                     }
                     GameOverAction::ShareTwitter => {
-                        let s = score.as_ref().unwrap().score;
-                        open_url(&share_url_twitter(s));
+                        if get_time() - last_share_time > 1.0 {
+                            let s = score.as_ref().unwrap().score;
+                            open_url(&share_url_twitter(s));
+                            last_share_time = get_time();
+                        }
                     }
                     GameOverAction::ShareWhatsApp => {
-                        let s = score.as_ref().unwrap().score;
-                        open_url(&share_url_whatsapp(s));
+                        if get_time() - last_share_time > 1.0 {
+                            let s = score.as_ref().unwrap().score;
+                            open_url(&share_url_whatsapp(s));
+                            last_share_time = get_time();
+                        }
                     }
                     GameOverAction::None => {}
                 }

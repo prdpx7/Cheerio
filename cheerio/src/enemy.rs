@@ -24,6 +24,7 @@ pub struct Enemy {
     pub on_ground: bool,
     pub death_timer: f32,
     pub death_vy: f32,
+    pub spawn_timer: f32,
 }
 
 impl Enemy {
@@ -48,6 +49,7 @@ impl Enemy {
             on_ground: false,
             death_timer: 0.0,
             death_vy: 0.0,
+            spawn_timer: 0.0,
         }
     }
 
@@ -59,6 +61,10 @@ impl Enemy {
                 self.y += self.death_vy * dt;
             }
             return;
+        }
+
+        if self.spawn_timer > 0.0 {
+            self.spawn_timer -= dt;
         }
 
         self.x += self.vx * dt;
@@ -103,6 +109,7 @@ impl Enemy {
                 self.death_timer = 0.0;
                 let mut shell = Enemy::new(EnemyKind::Shell, self.x, self.y + self.height);
                 shell.vx = SHELL_SPEED;
+                shell.spawn_timer = 0.2;
                 Some(shell)
             }
             EnemyKind::BulletBill => {

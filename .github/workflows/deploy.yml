@@ -52,7 +52,7 @@ jobs:
               <canvas id="glcanvas" tabindex="1"></canvas>
               <script>
               var _origGetContext=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,a){if(t==="webgl"||t==="webgl2"){a=Object.assign({},a,{preserveDrawingBuffer:true})}return _origGetContext.call(this,t,a)};
-              (function(){var c=document.getElementById('glcanvas');if(c){c.width=window.innerWidth;c.height=window.innerHeight;}})();
+              (function(){var c=document.getElementById('glcanvas');if(c){var dpr=window.devicePixelRatio||1;c.width=Math.round(window.innerWidth*dpr);c.height=Math.round(window.innerHeight*dpr);}})();
               var _mqAudioCtxList=[];var _AC=window.AudioContext||window.webkitAudioContext;if(_AC){var _O=_AC;window.AudioContext=function(){var c=new _O();_mqAudioCtxList.push(c);return c};window.AudioContext.prototype=_O.prototype;if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext}
               ["touchstart","click","keydown"].forEach(function(e){document.addEventListener(e,function(){_mqAudioCtxList.forEach(function(c){if(c.state==="suspended")c.resume()})})});
               ["smb_jump-small.wav","smb_coin.wav","smb_stomp.wav","smb_powerup.wav","smb_fireball.wav","smb_mariodie.wav","smb_1-up.wav","smb_bump.wav","bgm_main.ogg"].forEach(function(f){fetch("assets/audio/"+f)});
@@ -62,8 +62,7 @@ jobs:
               importObject.env.cheerio_open_url = function(ptr, len) {
                   var arr = new Uint8Array(wasm_memory.buffer, ptr, len);
                   var url = new TextDecoder().decode(arr);
-                  var w = window.open(url, '_blank', 'noopener,noreferrer');
-                  if (!w) { window.location.href = url; }
+                  window.open(url, '_blank', 'noopener,noreferrer');
               };
               load("cheerio.wasm");
               </script>
