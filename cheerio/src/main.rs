@@ -27,6 +27,7 @@ use screens::GameOverAction;
 mod wasm_js {
     extern "C" {
         pub fn cheerio_open_url(ptr: *const u8, len: usize);
+        pub fn cheerio_loading_done();
         pub fn cheerio_share_screenshot(score: u32, platform: u32);
     }
 }
@@ -38,6 +39,13 @@ fn open_url(url: &str) {
     }
     #[cfg(not(target_arch = "wasm32"))]
     let _ = url;
+}
+
+fn loading_done() {
+    #[cfg(target_arch = "wasm32")]
+    unsafe {
+        wasm_js::cheerio_loading_done();
+    }
 }
 
 fn share_screenshot(score: u32, platform: u32) {
@@ -78,6 +86,7 @@ async fn main() {
     let mut zone_manager: Option<ZoneManager> = None;
     let mut audio = AudioManager::new();
     audio.load_with_progress().await;
+    loading_done();
 
     let mut dying_timer: f32 = 0.0;
     let mut game_over_timer: f32 = 0.0;
