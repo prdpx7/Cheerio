@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cheerio</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #4AB8FF; touch-action: none; }
+        canvas { display: block; width: 100%; height: 100%; background: #4AB8FF; }
+        #lo { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #4AB8FF; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; font-family: monospace; }
+        #lo-title { color: white; font-size: clamp(28px,8vw,48px); font-weight: bold; letter-spacing: 4px; }
+        #lo-sub { color: rgba(255,255,255,0.8); font-size: 14px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div id="lo"><div id="lo-title">CHEERIO</div><div id="lo-sub">Loading...</div></div>
+    <canvas id="glcanvas" tabindex="1"></canvas>
+    <script>
+    var _origGetContext=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,a){if(t==="webgl"||t==="webgl2"){a=Object.assign({},a,{preserveDrawingBuffer:true})}return _origGetContext.call(this,t,a)};
+    (function(){var c=document.getElementById('glcanvas');if(c){c.width=Math.round(window.innerWidth);c.height=Math.round(window.innerHeight);}})();
+    var _mqAudioCtxList=[];var _AC=window.AudioContext||window.webkitAudioContext;if(_AC){var _O=_AC;window.AudioContext=function(){var c=new _O();_mqAudioCtxList.push(c);return c};window.AudioContext.prototype=_O.prototype;if(window.webkitAudioContext)window.webkitAudioContext=window.AudioContext}
+    ["touchstart","click","keydown"].forEach(function(e){document.addEventListener(e,function(){_mqAudioCtxList.forEach(function(c){if(c.state==="suspended")c.resume()})})});
+    var _origCreateBufferSource = AudioContext.prototype.createBufferSource;
+    AudioContext.prototype.createBufferSource = function() {
+        var node = _origCreateBufferSource.call(this);
+        if (!this._sourceNodes) this._sourceNodes = [];
+        this._sourceNodes.push(node);
+        var self = this;
+        node.addEventListener('ended', function() {
+            var idx = self._sourceNodes.indexOf(node);
+            if (idx >= 0) self._sourceNodes.splice(idx, 1);
+        });
+        return node;
+    };
+    ["smb_jump-small.wav","smb_coin.wav","smb_stomp.wav","smb_powerup.wav","smb_fireball.wav","smb_mariodie.wav","smb_1-up.wav","smb_bump.wav","bgm_main.ogg"].forEach(function(f){fetch("assets/audio/"+f)});
+    </script>
+    <script src="mq_js_bundle.js"></script>
+    <script>
+    importObject.env.cheerio_set_bgm_tempo = function(rate_x100) {
+        var rate = rate_x100 / 100.0;
+        rate = Math.max(0.5, Math.min(rate, 1.5));
+        if (window._mqAudioCtxList) {
+            _mqAudioCtxList.forEach(function(ctx) {
+                if (ctx._sourceNodes) {
+                    ctx._sourceNodes.forEach(function(node) {
+                        if (node.playbackRate && node.loop) {
+                            node.playbackRate.value = rate;
+                        }
+                    });
+                }
+            });
+        }
+    };
+    importObject.env.cheerio_open_url = function(ptr, len) {
+        var arr = new Uint8Array(wasm_memory.buffer, ptr, len);
+        var url = new TextDecoder().decode(arr);
+        window.open(url, '_blank', 'noopener,noreferrer');
+    };
+    importObject.env.cheerio_loading_done = function() {
+        var lo = document.getElementById('lo');
+        if (lo) lo.parentNode.removeChild(lo);
+    };
+    importObject.env.cheerio_share_screenshot = function(score, coins, distance, enemies_stomped, is_high_score, zone_type, platform) {
+        var shareUrl = 'https://prdpx7.github.io/Cheerio/v2/';
+        var twitterUrl = 'https://twitter.com/intent/tweet?text=I+scored+' + score + '+in+Cheerio%21+Can+you+beat+me%3F&url=' + encodeURIComponent(shareUrl);
+        var whatsappUrl = 'https://wa.me/?text=I+scored+' + score + '+in+Cheerio%21+Play+at+' + encodeURIComponent(shareUrl);
+        var fallbackUrl = platform === 1 ? twitterUrl : whatsappUrl;
+        var shareText = 'I scored ' + score + ' in Cheerio! Can you beat me? ' + shareUrl;
+
+        var zoneBgs = [
+            ['#66B3FF', '#3388CC'],
+            ['#1A1A2E', '#0D0D1A'],
+            ['#E0F0FF', '#B8D8F0'],
+            ['#2B1A00', '#1A0D00'],
+        ];
+        var bg = zoneBgs[zone_type] || zoneBgs[0];
+
+        var c = document.createElement('canvas');
+        c.width = 600; c.height = 400;
+        var ctx = c.getContext('2d');
+        if (!ctx) { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); return; }
+
+        var grd = ctx.createLinearGradient(0, 0, 0, 400);
+        grd.addColorStop(0, bg[0]);
+        grd.addColorStop(1, bg[1]);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, 600, 400);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(40, 30, 520, 340);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(45, 35, 510, 330);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 48px monospace';
+        ctx.fillText('CHEERIO', 300, 90);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '14px monospace';
+        ctx.fillText('An Endless Adventure', 300, 115);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 36px monospace';
+        ctx.fillText('Score: ' + score, 300, 175);
+
+        ctx.font = '20px monospace';
+        ctx.fillStyle = '#CCCCDD';
+        ctx.fillText('Distance: ' + distance + 'm', 300, 215);
+
+        ctx.fillStyle = '#FFD833';
+        ctx.fillText('Coins: ' + coins, 300, 250);
+
+        ctx.fillStyle = '#CCE6CC';
+        ctx.fillText('Stomped: ' + enemies_stomped, 300, 285);
+
+        if (is_high_score) {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 22px monospace';
+            ctx.fillText('NEW HIGH SCORE!', 300, 325);
+        }
+
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '12px monospace';
+        ctx.fillText('prdpx7.github.io/Cheerio/v2', 300, 370);
+
+        c.toBlob(function(blob) {
+            if (!blob) { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); return; }
+            var file = new File([blob], 'cheerio-score.png', { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ files: [file], title: 'Cheerio', text: shareText })
+                    .catch(function() { window.open(fallbackUrl, '_blank', 'noopener,noreferrer'); });
+            } else {
+                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+            }
+        }, 'image/png');
+    };
+    load("cheerio.wasm");
+    </script>
+</body>
+</html>
