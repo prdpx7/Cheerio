@@ -99,6 +99,12 @@ jobs:
           </html>
           HTMLEOF
 
+      - name: Copy v2 preview
+        run: |
+          if [ -d v2 ]; then
+            cp -r v2 dist/v2
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
